@@ -1,2 +1,2 @@
 # mthc
-markdown
+markdown to html converter written in C
