@@ -1,6 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+// Block type format
 #define PSR_H1_PATTERN "^#\\s+(.*)$"
 #define PSR_H2_PATTERN "^##\\s+(.*)$"
 #define PSR_H3_PATTERN "^###\\s+(.*)$"

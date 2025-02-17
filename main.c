@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
       strchr(contents, '\n')[0] = '\0';
     }
 
-    // Test regex match
+    // regex matching
     // level 1 heading
     matched = heading_parser(contents, PSR_H1_PATTERN, 2, 1);
     if (matched != NULL) {
