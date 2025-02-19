@@ -9,3 +9,4 @@
 #endif
 
 char *read_line(FILE *file, bool remove_newline);
+

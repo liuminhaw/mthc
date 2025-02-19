@@ -24,3 +24,17 @@ Content for level 5 heading
 ###### H6 Heading
 
 Content for level 6 heading
+
+## Paragraph test
+A simple paragraph
+
+Paragraph in a new section
+
+New section paragraph
+separated by a new line
+
+New section paragraph  
+with two space at the end of the first line
+
+## Backquotes test
+> This is a sample backquote
