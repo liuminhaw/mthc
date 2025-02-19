@@ -11,4 +11,4 @@
 
 #endif
 
-char* heading_parser(char *target_str, char *pattern, int match_count, int target_match);
+char *heading_parser(char *target_str, char *pattern, int match_count, int target_match);

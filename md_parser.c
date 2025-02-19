@@ -3,7 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-char* heading_parser(char *target_str, char *pattern, int match_count, int target_match) {
+#include "md_parser.h"
+
+char *heading_parser(char *target_str, char *pattern, int match_count,
+                     int target_match) {
   regex_t regex;
   // const char *pattern = "^#\\s+(.*)$";
   // Index 0 : whole match; Index 1 : first group
@@ -30,7 +33,7 @@ char* heading_parser(char *target_str, char *pattern, int match_count, int targe
 
       strncpy(captured, target_str + start, len);
       captured[len] = '\0';
-      
+
       regfree(&regex);
       return captured;
     }
@@ -46,4 +49,3 @@ char* heading_parser(char *target_str, char *pattern, int match_count, int targe
   regfree(&regex);
   return NULL;
 }
-

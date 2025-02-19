@@ -8,8 +8,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <unistd.h>
 
+#include "file_reader.h"
 #include "md_parser.h"
 
 void ltrim_space(char *str) {
@@ -44,52 +46,54 @@ int is_empty_or_whitespace(const char *str) {
 }
 
 int main(int argc, char *argv[]) {
-  char contents[5000];
   char *matched;
 
   FILE *md_file = fopen(argv[1], "r");
 
-  while (fgets(contents, 5000, md_file) != NULL) {
-    if (strchr(contents, '\n') != NULL) {
-      strchr(contents, '\n')[0] = '\0';
-    }
+  char *line;
+  while ((line = read_line(md_file, true)) != NULL) {
+    // if (strchr(contents, '\n') != NULL) {
+    //   strchr(contents, '\n')[0] = '\0';
+    // }
 
     // regex matching
     // level 1 heading
-    matched = heading_parser(contents, PSR_H1_PATTERN, 2, 1);
+    matched = heading_parser(line, PSR_H1_PATTERN, 2, 1);
     if (matched != NULL) {
       printf("<h1>%s</h1>\n", matched);
     }
 
     // level 2 heading
-    matched = heading_parser(contents, PSR_H2_PATTERN, 2, 1);
+    matched = heading_parser(line, PSR_H2_PATTERN, 2, 1);
     if (matched != NULL) {
       printf("<h2>%s</h2>\n", matched);
     }
 
     // level 3 heading
-    matched = heading_parser(contents, PSR_H3_PATTERN, 2, 1);
+    matched = heading_parser(line, PSR_H3_PATTERN, 2, 1);
     if (matched != NULL) {
       printf("<h3>%s</h3>\n", matched);
     }
 
     // level 4 heading
-    matched = heading_parser(contents, PSR_H4_PATTERN, 2, 1);
+    matched = heading_parser(line, PSR_H4_PATTERN, 2, 1);
     if (matched != NULL) {
       printf("<h4>%s</h4>\n", matched);
     }
 
     // level 5 heading
-    matched = heading_parser(contents, PSR_H5_PATTERN, 2, 1);
+    matched = heading_parser(line, PSR_H5_PATTERN, 2, 1);
     if (matched != NULL) {
       printf("<h5>%s</h5>\n", matched);
     }
 
     // level 6 heading
-    matched = heading_parser(contents, PSR_H6_PATTERN, 2, 1);
+    matched = heading_parser(line, PSR_H6_PATTERN, 2, 1);
     if (matched != NULL) {
       printf("<h6>%s</h6>\n", matched);
     }
+
+    free(line);
   }
 
   free(matched);
