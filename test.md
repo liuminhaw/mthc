@@ -25,6 +25,8 @@ Content for level 5 heading
 
 Content for level 6 heading
 
+####### H7 is not a valid heading
+
 ## Paragraph test
 A simple paragraph
 
@@ -37,4 +39,4 @@ New section paragraph
 with two space at the end of the first line
 
 ## Backquotes test
-> This is a sample backquote
+> This is a sample blockquote

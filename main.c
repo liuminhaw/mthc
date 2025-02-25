@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 
     new_block = block_parsing(tail_block, line);
     if (new_block != NULL) {
-      printf("type: %d, content: %s\n", new_block->type, new_block->content);
+      printf("block: %d, content: %s\n", new_block->block, new_block->content);
       if (head_block == NULL) {
         head_block = new_block;
         tail_block = head_block;
@@ -53,7 +53,10 @@ int main(int argc, char *argv[]) {
   printf("\n=== Traverse block list ===\n");
   MDBlock *curr_block = head_block;
   while (curr_block != NULL) {
-    printf("type: %d, content: %s\n", curr_block->type, curr_block->content);
+    char *btag = blocktag_to_string(curr_block->block);
+    char *ttype = tagtype_to_string(curr_block->type);
+    printf("block: %s, type: %s, tag: %s, content: %s\n", btag, ttype,
+           curr_block->tag, curr_block->content);
     curr_block = curr_block->next;
   }
 

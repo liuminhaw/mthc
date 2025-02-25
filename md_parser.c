@@ -8,134 +8,77 @@
 #include "md_parser.h"
 
 MDBlock *block_parsing(MDBlock *curr_block, char *target_str) {
-  // printf("start block parsing\n");
-  char *matched;
-  MDBlock *new_block = malloc(sizeof(MDBlock));
-  new_block->next = NULL;
+  MDBlock *new_block = NULL;
 
-  // level 1 heading
-  matched = heading_parser(target_str, PSR_H1_PATTERN, 2, 1);
-  // printf("level 1 heading\n");
-  if (matched != NULL) {
-    new_block->content = matched;
-    new_block->type = H1;
+  new_block = heading_parser(target_str);
+  if (new_block != NULL) {
     return new_block;
   }
 
-  // level 2 heading
-  matched = heading_parser(target_str, PSR_H2_PATTERN, 2, 1);
-  if (matched != NULL) {
-    new_block->content = matched;
-    new_block->type = H2;
-    return new_block;
-  }
-
-  // level 3 heading
-  matched = heading_parser(target_str, PSR_H3_PATTERN, 2, 1);
-  if (matched != NULL) {
-    new_block->content = matched;
-    new_block->type = H3;
-    return new_block;
-  }
-
-  // level 4 heading
-  matched = heading_parser(target_str, PSR_H4_PATTERN, 2, 1);
-  if (matched != NULL) {
-    new_block->content = matched;
-    new_block->type = H4;
-    return new_block;
-  }
-
-  // level 5 heading
-  matched = heading_parser(target_str, PSR_H5_PATTERN, 2, 1);
-  if (matched != NULL) {
-    new_block->content = matched;
-    new_block->type = H5;
-    return new_block;
-  }
-
-  // level 6 heading
-  matched = heading_parser(target_str, PSR_H6_PATTERN, 2, 1);
-  if (matched != NULL) {
-    new_block->content = matched;
-    new_block->type = H6;
-    return new_block;
-  }
-
-  // paragraph
-  // printf("paragraph\n");
-  matched = read_paragraph(curr_block, target_str);
-  if (matched != NULL && curr_block != NULL && curr_block->type == PARAGRAPH) {
-    free(new_block);
-    free(curr_block->content);
-    curr_block->content = matched;
+  new_block = paragraph_parser(curr_block, target_str);
+  if (new_block == curr_block) {
     return NULL;
-  } else if (matched != NULL) {
-    new_block->content = matched;
-    new_block->type = PARAGRAPH;
+  } else if (new_block != NULL) {
     return new_block;
   }
 
-  new_block->type = SECTION_BREAK;
+  new_block = malloc(sizeof(MDBlock));
+  new_block->block = SECTION_BREAK;
   new_block->content = NULL;
+  new_block->type = INLINE;
   return new_block;
-
-  // free(new_block);
-  // return NULL;
 }
 
-char *heading_parser(char *target_str, char *pattern, int match_count,
-                     int target_match) {
-  regex_t regex;
-  // const char *pattern = "^#\\s+(.*)$";
-  // Index 0 : whole match; Index 1 : first group
-  regmatch_t matches[match_count];
+MDBlock *heading_parser(char *line) {
+  int line_length = strlen(line);
+  int heading_level = 0;
 
-  if (regcomp(&regex, pattern, REG_EXTENDED)) {
-    fprintf(stderr, "Could not compile regex\n");
-    return NULL;
+  while (*line == '#') {
+    heading_level++;
+    line++;
   }
 
-  int ret = regexec(&regex, target_str, match_count, matches, 0);
-  if (!ret) {
-    if (matches[target_match].rm_so != -1) {
-      int start = matches[target_match].rm_so;
-      int end = matches[target_match].rm_eo;
-      int len = end - start;
+  while (*line && isspace((unsigned char)*line)) {
+    line++;
+  }
 
-      char *captured = malloc(len + 1);
-      if (!captured) {
-        fprintf(stderr, "malloc failed\n");
-        // perror("malloc");
-        return NULL;
-      }
-
-      strncpy(captured, target_str + start, len);
-      captured[len] = '\0';
-
-      regfree(&regex);
-      return captured;
+  if (heading_level > 0 && heading_level < 7) {
+    char *content = strdup(line);
+    if (content == NULL) {
+      perror("strdup failed");
+      return NULL;
     }
-  } else if (ret == REG_NOMATCH) {
-    return NULL;
-  } else {
-    char error_message[100];
-    regerror(ret, &regex, error_message, sizeof(error_message));
-    fprintf(stderr, "Regex match failed: %s\n", error_message);
-    return NULL;
+
+    char *tag = malloc(3);
+    if (tag == NULL) {
+      perror("malloc failed");
+      return NULL;
+    }
+    sprintf(tag, "h%d", heading_level);
+
+    MDBlock *new_block = malloc(sizeof(MDBlock));
+    if (new_block == NULL) {
+      perror("malloc failed");
+      return NULL;
+    }
+
+    new_block->content = content;
+    new_block->tag = tag;
+    new_block->block = heading_level;
+    new_block->type = BLOCK;
+    new_block->next = NULL;
+    return new_block;
   }
 
-  regfree(&regex);
   return NULL;
 }
 
-char *read_paragraph(MDBlock *block, char *line) {
-  // printf("read_paragraph\n");
+MDBlock *paragraph_parser(MDBlock *block, char *line) {
   if (is_empty_or_whitespace(line)) {
     return NULL;
   }
 
-  if (block != NULL && block->type == PARAGRAPH) {
+  if (block != NULL && block->block == PARAGRAPH) {
     size_t len = strlen(block->content) + strlen(line) + 2;
     char *paragraph = malloc(len);
     if (!paragraph) {
@@ -144,7 +87,16 @@ char *read_paragraph(MDBlock *block, char *line) {
     }
 
     sprintf(paragraph, "%s %s", block->content, line);
-    return paragraph;
+    free(block->content);
+    block->content = paragraph;
+
+    return block;
+  }
+
+  MDBlock *new_block = malloc(sizeof(MDBlock));
+  if (new_block == NULL) {
+    perror("malloc failed");
+    return NULL;
   }
 
   size_t len = strlen(line);
@@ -155,7 +107,12 @@ char *read_paragraph(MDBlock *block, char *line) {
   }
 
   strcpy(paragraph, line);
-  return paragraph;
+  new_block->content = paragraph;
+  new_block->tag = "p";
+  new_block->block = PARAGRAPH;
+  new_block->type = BLOCK;
+  new_block->next = NULL;
+  return new_block;
 }
 
 /* Returns 1 if the string is empty or only whitespace, otherwise returns 0 */
@@ -175,4 +132,38 @@ bool is_empty_or_whitespace(const char *str) {
   }
   // The string is either empty or only contained whitespace.
   return 1;
+}
+
+char *blocktag_to_string(BlockTag block) {
+  switch (block) {
+  case H1:
+    return "H1";
+  case H2:
+    return "H2";
+  case H3:
+    return "H3";
+  case H4:
+    return "H4";
+  case H5:
+    return "H5";
+  case H6:
+    return "H6";
+  case PARAGRAPH:
+    return "PARAGRAPH";
+  case SECTION_BREAK:
+    return "SECTION BREAK";
+  default:
+    return "INVALID";
+  }
+}
+
+char *tagtype_to_string(TagType type) {
+  switch (type) {
+  case BLOCK:
+    return "BLOCK";
+  case INLINE:
+    return "INLINE";
+  default:
+    return "INVALID";
+  }
 }
