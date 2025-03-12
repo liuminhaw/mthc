@@ -1,5 +1,4 @@
 #include <ctype.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +6,7 @@
 
 #include "file_reader.h"
 #include "md_parser.h"
+#include "debug.h"
 
 void ltrim_space(char *str) {
   char *p = str;
@@ -55,8 +55,13 @@ int main(int argc, char *argv[]) {
   while (curr_block != NULL) {
     char *btag = blocktag_to_string(curr_block->block);
     char *ttype = tagtype_to_string(curr_block->type);
+    char *sub_content = literal_newline_substitution(curr_block->content);
+    if (sub_content == NULL && curr_block->block != SECTION_BREAK) {
+      fprintf(stderr, "Failed to substitute newline\n");
+      return 1;
+    }
     printf("block: %s, type: %s, tag: %s, content: %s\n", btag, ttype,
-           curr_block->tag, curr_block->content);
+           curr_block->tag, sub_content);
     curr_block = curr_block->next;
   }
 

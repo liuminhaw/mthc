@@ -20,6 +20,7 @@ typedef enum {
   H5, // 5 
   H6, // 6
   PARAGRAPH,
+  BLOCKQUOTE,
   SECTION_BREAK,
 } BlockTag;
 
@@ -33,14 +34,17 @@ typedef struct MDBlock {
   char *tag;
   TagType type;
   BlockTag block;
+  struct MDBlock *child;
   struct MDBlock *next;
 } MDBlock;
 
 
 MDBlock *block_parsing(MDBlock *block, char *target_str);
 MDBlock *heading_parser(char *line);
+MDBlock *blockquote_parser(MDBlock *block, char *line);
 MDBlock *paragraph_parser(MDBlock* block, char* line);
 
+bool is_header_block(MDBlock block);
 bool is_empty_or_whitespace(const char *str); 
 
 char *blocktag_to_string(BlockTag block);

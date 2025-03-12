@@ -15,6 +15,13 @@ MDBlock *block_parsing(MDBlock *curr_block, char *target_str) {
     return new_block;
   }
 
+  new_block = blockquote_parser(curr_block, target_str);
+  if (new_block == curr_block) {
+    return NULL;
+  } else if (new_block != NULL) {
+    return new_block;
+  }
+
   new_block = paragraph_parser(curr_block, target_str);
   if (new_block == curr_block) {
     return NULL;
@@ -36,6 +43,11 @@ MDBlock *heading_parser(char *line) {
   while (*line == '#') {
     heading_level++;
     line++;
+  }
+
+  // Make sure there is a space after header hash marks for it to be a header
+  if (!isspace((unsigned char)*line)) {
+    return NULL;
   }
 
   while (*line && isspace((unsigned char)*line)) {
@@ -66,6 +78,7 @@ MDBlock *heading_parser(char *line) {
     new_block->tag = tag;
     new_block->block = heading_level;
     new_block->type = BLOCK;
+    new_block->child = NULL;
     new_block->next = NULL;
     return new_block;
   }
@@ -111,8 +124,77 @@ MDBlock *paragraph_parser(MDBlock *block, char *line) {
   new_block->tag = "p";
   new_block->block = PARAGRAPH;
   new_block->type = BLOCK;
+  new_block->child = NULL;
   new_block->next = NULL;
   return new_block;
+}
+
+MDBlock *blockquote_parser(MDBlock *block, char *line) {
+  printf("blockquote_parser\n");
+  if (is_empty_or_whitespace(line)) {
+    return NULL;
+  }
+
+  int line_length = strlen(line);
+  if (*line == '>' && isspace((unsigned char)*(line + 1))) {
+    printf("Found blockquote block\n");
+    line++; 
+  } else {
+    return NULL;
+  }
+
+  while (*line && isspace((unsigned char)*line)) {
+    line++;
+  }
+
+  if (block != NULL && block->block == BLOCKQUOTE) {
+    // TODO: Already in blockquote, append to the content
+    // printf("Appending to blockquote block\n");
+    size_t len = strlen(block->content) + strlen(line) + 2;
+    char *content = malloc(len);
+    if (!content) {
+      perror("malloc failed");
+      return NULL;
+    }
+
+    sprintf(content, "%s%s\n", block->content, line);
+    free(block->content);
+    block->content = content;
+
+    return block;
+  }
+
+  if (block == NULL || block->block == SECTION_BREAK || is_header_block(*block)) {
+    // TODO: Create a new blockquote block
+    // printf("Creating new blockquote block\n");
+    MDBlock *new_block = malloc(sizeof(MDBlock));
+    if (new_block == NULL) {
+      perror("malloc failed");
+      return NULL;
+    }
+
+    size_t len = strlen(line);
+    char *content = malloc(len + 2);
+    if (!content) {
+      perror("malloc failed");
+      return NULL;
+    }
+
+    sprintf(content, "%s\n", line);
+    new_block->content = content;
+    new_block->tag = "blockquote";
+    new_block->block = BLOCKQUOTE;
+    new_block->type = BLOCK;
+    new_block->child = NULL;
+    new_block->next = NULL;
+    return new_block;
+  }
+
+  return NULL;
+}
+
+bool is_header_block(MDBlock block) {
+  return 1 <= block.block && block.block <= 6;
 }
 
 /* Returns 1 if the string is empty or only whitespace, otherwise returns 0 */
@@ -152,6 +234,8 @@ char *blocktag_to_string(BlockTag block) {
     return "PARAGRAPH";
   case SECTION_BREAK:
     return "SECTION BREAK";
+  case BLOCKQUOTE:
+    return "BLOCKQUOTE";
   default:
     return "INVALID";
   }

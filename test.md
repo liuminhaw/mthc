@@ -27,6 +27,8 @@ Content for level 6 heading
 
 ####### H7 is not a valid heading
 
+###This should not be a heading
+
 ## Paragraph test
 A simple paragraph
 
@@ -40,3 +42,9 @@ with two space at the end of the first line
 
 ## Backquotes test
 > This is a sample blockquote
+
+> This is also a sample blockquote
+
+> Multiple line blockquote
+> This is line 2
+> This is line 3
