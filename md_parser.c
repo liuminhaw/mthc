@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "md_parser.h"
+// #include "file_reader.h"
 
 MDBlock *block_parsing(MDBlock *curr_block, char *target_str) {
   MDBlock *new_block = NULL;
@@ -152,8 +153,6 @@ MDBlock *blockquote_parser(MDBlock *block, char *line) {
   }
 
   if (block != NULL && block->block == BLOCKQUOTE) {
-    // TODO: Already in blockquote, append to the content
-    printf("Appending to blockquote block\n");
     size_t len = strlen(block->content) + strlen(line) + 2;
     char *content = malloc(len);
     if (!content) {
@@ -169,8 +168,6 @@ MDBlock *blockquote_parser(MDBlock *block, char *line) {
   }
 
   if (block == NULL || block->block == SECTION_BREAK || is_header_block(*block)) {
-    // TODO: Create a new blockquote block
-    printf("Creating new blockquote block\n");
     MDBlock *new_block = malloc(sizeof(MDBlock));
     if (new_block == NULL) {
       perror("malloc failed");

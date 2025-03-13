@@ -45,3 +45,83 @@ char *read_line(FILE *file, bool remove_newline) {
 
   return buffer;
 }
+
+// char **content_splitter(const char *content, char splitter, int *split_count) {
+char **content_splitter(const char *content, char splitter, int *split_count) {
+  int count = 0;
+  int capacity = MTHC_SPLITTER_CAP;
+  char **lines = malloc(capacity * sizeof(char *));
+  if (!lines) {
+    perror("malloc failed");
+    return NULL;
+  }
+
+  const char *start = content;
+  const char *end;
+
+  while ((end = strchr(start, splitter)) != NULL) {
+    size_t len = end - start; // len of current line
+    
+    char *line = malloc(len + 1);
+    if (!line) {
+      perror("malloc failed");
+      for (int i = 0; i < count; i++) {
+        free(lines[i]);
+      }
+      return NULL;
+    }
+    memcpy(line, start, len);
+    line[len] = '\0';
+
+    if (count >= capacity) {
+      capacity *= 2;
+      char **tmp_lines = realloc(lines, capacity * sizeof(char *));
+      if (!tmp_lines) {
+        perror("realloc failed");
+        for (int i = 0; i < count; i++) {
+          free(lines[i]);
+        }
+        free(lines);
+        return NULL;
+      }
+      lines = tmp_lines;
+    }
+    lines[count++] = line;
+
+    start = end + 1;
+  }
+
+  // Process the final segment if the string does not end with the splitter
+  if (*start != '\0') {
+    size_t len = strlen(start);
+    char *line = malloc(len + 1);
+    if (!line) {
+      perror("malloc failed");
+      for (int i = 0; i < count; i++) {
+        free(lines[i]);
+      }
+      free(lines);
+      return NULL;
+    }
+    memcpy(line, start, len);
+    line[len] = '\0';
+
+    if (count >= capacity) {
+      capacity *= 2;
+      char **tmp_lines = realloc(lines, capacity * sizeof(char *));
+      if (!tmp_lines) {
+        perror("realloc failed");
+        for (int i = 0; i < count; i++) {
+          free(lines[i]);
+        }
+        free(lines);
+        return NULL;
+      }
+      lines = tmp_lines;
+    }
+    lines[count++] = line;
+  }
+
+  *split_count = count;
+  return lines;
+}

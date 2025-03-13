@@ -29,14 +29,27 @@ int main(int argc, char *argv[]) {
 
   char *line;
   while ((line = read_line(md_file, true)) != NULL) {
-    // if (strchr(contents, '\n') != NULL) {
-    //   strchr(contents, '\n')[0] = '\0';
-    // }
     printf("line: %s\n", line);
 
     new_block = block_parsing(tail_block, line);
+
     if (new_block != NULL) {
       printf("block: %d, content: %s\n", new_block->block, new_block->content);
+      
+      if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
+        // Parse for child block
+        printf("tail block: %d, content: %s\n", tail_block->block, tail_block->content);
+        int split_count;
+        char **quote_lines = content_splitter(tail_block->content, '\n', &split_count);
+        if (quote_lines == NULL) {
+          perror("content_splitter failed");
+          return -1;
+        }
+        for (int i = 0; i < split_count; i++) {
+          printf("quote_lines[%d]: %s\n", i, quote_lines[i]);
+        }
+      }
+
       if (head_block == NULL) {
         head_block = new_block;
         tail_block = head_block;
@@ -44,6 +57,21 @@ int main(int argc, char *argv[]) {
       tail_block->next = new_block;
       tail_block = new_block;
     }
+
+    if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
+      // Parse for child block
+      printf("tail block: %d, content: %s\n", tail_block->block, tail_block->content);
+      int split_count;
+      char **quote_lines = content_splitter(tail_block->content, '\n', &split_count);
+      if (quote_lines == NULL) {
+        perror("content_splitter failed");
+        return -1;
+      }
+      for (int i = 0; i < split_count; i++) {
+        printf("quote_lines[%d]: %s\n", i, quote_lines[i]);
+      }
+    }
+
     free(line);
   }
   // free(matched);
@@ -62,8 +90,23 @@ int main(int argc, char *argv[]) {
     }
     printf("block: %s, type: %s, tag: %s, content: %s\n", btag, ttype,
            curr_block->tag, sub_content);
+
     curr_block = curr_block->next;
   }
+
+  // Generate HTML
+  // printf("\n=== Generate HTML ===\n");
+  // curr_block = head_block;
+  // while (curr_block != NULL) {
+  //   if (curr_block->block == SECTION_BREAK) {
+  //     curr_block = curr_block->next;
+  //     continue;
+  //   }
+  //   printf("<%s>\n", curr_block->tag);
+  //   printf("%s\n", curr_block->content);
+  //   printf("</%s>\n", curr_block->tag);
+  //   curr_block = curr_block->next;
+  // }
 
   return 0;
 }
