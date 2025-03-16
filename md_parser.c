@@ -5,28 +5,34 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "file_reader.h"
 #include "md_parser.h"
-// #include "file_reader.h"
 
 MDBlock *block_parsing(MDBlock *curr_block, char *target_str) {
+  printf("parsing block: %s\n", target_str);
   MDBlock *new_block = NULL;
 
   new_block = heading_parser(target_str);
   if (new_block != NULL) {
+    printf("heading block\n");
     return new_block;
   }
 
   new_block = blockquote_parser(curr_block, target_str);
-  if (new_block == curr_block) {
+  if (new_block != NULL && new_block == curr_block) {
+    printf("blockquote block\n");
     return NULL;
   } else if (new_block != NULL) {
+    printf("blockquote block\n");
     return new_block;
   }
 
   new_block = paragraph_parser(curr_block, target_str);
   if (new_block == curr_block) {
+    printf("paragraph block\n");
     return NULL;
   } else if (new_block != NULL) {
+    printf("paragraph block\n");
     return new_block;
   }
 
@@ -34,7 +40,44 @@ MDBlock *block_parsing(MDBlock *curr_block, char *target_str) {
   new_block->block = SECTION_BREAK;
   new_block->content = NULL;
   new_block->type = INLINE;
+  new_block->child = NULL;
+  new_block->next = NULL;
   return new_block;
+}
+
+MDBlock *child_block_parsing(MDBlock *block) {
+  printf("child block parsing content: %s\n", block->content);
+  MDBlock *head_block = NULL;
+  MDBlock *tail_block = head_block;
+  MDBlock *new_block = NULL;
+
+  int line_count = 0;
+  char **lines = content_splitter(block->content, '\n', &line_count);
+  if (lines == NULL) {
+    perror("content_splitter failed");
+    return NULL;
+  }
+
+  for (int i = 0; i < line_count; i++) {
+    new_block = block_parsing(tail_block, lines[i]);
+    if (new_block != NULL) {
+      if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
+        tail_block->child = child_block_parsing(tail_block);
+      }
+      if (head_block == NULL) {
+        head_block = new_block;
+        tail_block = head_block;
+      } else {
+        tail_block->next = new_block;
+        tail_block = new_block;
+      }
+    }
+  }
+  if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
+    tail_block->child = child_block_parsing(tail_block);
+  }
+
+  return head_block;
 }
 
 MDBlock *heading_parser(char *line) {
@@ -142,7 +185,6 @@ MDBlock *blockquote_parser(MDBlock *block, char *line) {
   }
 
   if (!isspace((unsigned char)*line_ptr) && *line_ptr != '\0') {
-    printf("No space or newline after blockquote\n");
     return NULL;
   }
 
@@ -167,7 +209,8 @@ MDBlock *blockquote_parser(MDBlock *block, char *line) {
     return block;
   }
 
-  if (block == NULL || block->block == SECTION_BREAK || is_header_block(*block)) {
+  if (block == NULL || block->block == SECTION_BREAK ||
+      is_header_block(*block)) {
     MDBlock *new_block = malloc(sizeof(MDBlock));
     if (new_block == NULL) {
       perror("malloc failed");

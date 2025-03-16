@@ -4,21 +4,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "file_reader.h"
-#include "md_parser.h"
 #include "debug.h"
+#include "file_reader.h"
 
-void ltrim_space(char *str) {
-  char *p = str;
-  // skip leading whitespace
-  while (*p && isspace((unsigned char)*p)) {
-    p++;
-  }
-  // move if there are leading spaces
-  if (p != str) {
-    memmove(str, p, strlen(p) + 1);
-  }
-}
+void ltrim_space(char *str);
+void print_html(MDBlock *block);
 
 int main(int argc, char *argv[]) {
   MDBlock *head_block = NULL;
@@ -35,78 +25,67 @@ int main(int argc, char *argv[]) {
 
     if (new_block != NULL) {
       printf("block: %d, content: %s\n", new_block->block, new_block->content);
-      
+
       if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
         // Parse for child block
-        printf("tail block: %d, content: %s\n", tail_block->block, tail_block->content);
-        int split_count;
-        char **quote_lines = content_splitter(tail_block->content, '\n', &split_count);
-        if (quote_lines == NULL) {
-          perror("content_splitter failed");
-          return -1;
-        }
-        for (int i = 0; i < split_count; i++) {
-          printf("quote_lines[%d]: %s\n", i, quote_lines[i]);
-        }
+        tail_block->child = child_block_parsing(tail_block);
       }
 
       if (head_block == NULL) {
         head_block = new_block;
         tail_block = head_block;
-      }
-      tail_block->next = new_block;
-      tail_block = new_block;
-    }
-
-    if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
-      // Parse for child block
-      printf("tail block: %d, content: %s\n", tail_block->block, tail_block->content);
-      int split_count;
-      char **quote_lines = content_splitter(tail_block->content, '\n', &split_count);
-      if (quote_lines == NULL) {
-        perror("content_splitter failed");
-        return -1;
-      }
-      for (int i = 0; i < split_count; i++) {
-        printf("quote_lines[%d]: %s\n", i, quote_lines[i]);
+      } else {
+        tail_block->next = new_block;
+        tail_block = new_block;
       }
     }
 
     free(line);
   }
-  // free(matched);
   fclose(md_file);
 
   // Traverse block list
   printf("\n=== Traverse block list ===\n");
-  MDBlock *curr_block = head_block;
-  while (curr_block != NULL) {
-    char *btag = blocktag_to_string(curr_block->block);
-    char *ttype = tagtype_to_string(curr_block->type);
-    char *sub_content = literal_newline_substitution(curr_block->content);
-    if (sub_content == NULL && curr_block->block != SECTION_BREAK) {
-      fprintf(stderr, "Failed to substitute newline\n");
-      return 1;
-    }
-    printf("block: %s, type: %s, tag: %s, content: %s\n", btag, ttype,
-           curr_block->tag, sub_content);
-
-    curr_block = curr_block->next;
-  }
+  traverse_block(head_block);
 
   // Generate HTML
-  // printf("\n=== Generate HTML ===\n");
-  // curr_block = head_block;
-  // while (curr_block != NULL) {
-  //   if (curr_block->block == SECTION_BREAK) {
-  //     curr_block = curr_block->next;
-  //     continue;
-  //   }
-  //   printf("<%s>\n", curr_block->tag);
-  //   printf("%s\n", curr_block->content);
-  //   printf("</%s>\n", curr_block->tag);
-  //   curr_block = curr_block->next;
-  // }
+  printf("\n=== Generate HTML ===\n");
+  print_html(head_block);
 
   return 0;
+}
+
+void print_html(MDBlock *block) {
+  if (block == NULL) {
+    return;
+  }
+
+  if (block->block == SECTION_BREAK) {
+    print_html(block->next);
+    return;
+  }
+
+  if (block->child != NULL) {
+    printf("<%s>\n", block->tag);
+    print_html(block->child);
+    printf("</%s>\n", block->tag);
+  } else {
+    printf("<%s>\n", block->tag);
+    printf("%s\n", block->content);
+    printf("</%s>\n", block->tag);
+  }
+
+  print_html(block->next);
+}
+
+void ltrim_space(char *str) {
+  char *p = str;
+  // skip leading whitespace
+  while (*p && isspace((unsigned char)*p)) {
+    p++;
+  }
+  // move if there are leading spaces
+  if (p != str) {
+    memmove(str, p, strlen(p) + 1);
+  }
 }

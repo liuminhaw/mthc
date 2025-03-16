@@ -1,9 +1,11 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-// Substitutes newline character with '\n' literal for debugging recognition of 
+#include "debug.h"
+
+// Substitutes newline character with '\n' literal for debugging recognition of
 // the newline character
 char *literal_newline_substitution(char *str) {
   if (str == NULL) {
@@ -36,4 +38,29 @@ char *literal_newline_substitution(char *str) {
   new_str[new_len] = '\0';
 
   return new_str;
+}
+
+void traverse_block(MDBlock *block) {
+  if (block == NULL) {
+    return;
+  }
+
+  char *btag = blocktag_to_string(block->block);
+  char *ttype = tagtype_to_string(block->type);
+  char *sub_content = literal_newline_substitution(block->content);
+  if (sub_content == NULL && block->block != SECTION_BREAK) {
+    perror("literal_newline_substitution failed");
+    return;
+  }
+
+  if (block->block == BLOCKQUOTE) {
+    printf("block: %s, type: %s, tag: %s\n", btag, ttype, block->tag);
+  } else {
+    printf("block: %s, type: %s, tag: %s, content: %s\n", btag, ttype,
+           block->tag, sub_content);
+  }
+  // printf("traveling to child block\n");
+  traverse_block(block->child);
+  // printf("traveling to next block\n");
+  traverse_block(block->next);
 }

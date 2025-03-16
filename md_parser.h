@@ -9,7 +9,6 @@
 // #define PSR_H5_PATTERN "^#####\\s+(.*)$"
 // #define PSR_H6_PATTERN "^######\\s+(.*)$"
 
-#endif
 
 typedef enum {
   INVALID,
@@ -39,13 +38,16 @@ typedef struct MDBlock {
 } MDBlock;
 
 
-MDBlock *block_parsing(MDBlock *block, char *target_str);
-MDBlock *heading_parser(char *line);
-MDBlock *blockquote_parser(MDBlock *block, char *line);
-MDBlock *paragraph_parser(MDBlock* block, char* line);
+MDBlock* block_parsing(MDBlock *block, char *target_str);
+MDBlock* heading_parser(char *line);
+MDBlock* blockquote_parser(MDBlock *block, char *line);
+MDBlock* paragraph_parser(MDBlock* block, char* line);
+MDBlock* child_block_parsing(MDBlock *block);
 
 bool is_header_block(MDBlock block);
 bool is_empty_or_whitespace(const char *str); 
 
-char *blocktag_to_string(BlockTag block);
-char *tagtype_to_string(TagType type);
+char* blocktag_to_string(BlockTag block);
+char* tagtype_to_string(TagType type);
+
+#endif
