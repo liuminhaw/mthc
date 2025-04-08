@@ -20,6 +20,8 @@ typedef enum {
   H6, // 6
   PARAGRAPH,
   BLOCKQUOTE,
+  ORDERED_LIST,
+  LIST_ITEM,
   SECTION_BREAK,
 } BlockTag;
 
@@ -41,6 +43,7 @@ typedef struct MDBlock {
 MDBlock* block_parsing(MDBlock *block, char *target_str);
 MDBlock* heading_parser(char *line);
 MDBlock* blockquote_parser(MDBlock *block, char *line);
+MDBlock* ordered_list_parser(MDBlock *block, char *line);
 MDBlock* paragraph_parser(MDBlock* block, char* line);
 MDBlock* child_block_parsing(MDBlock *block);
 

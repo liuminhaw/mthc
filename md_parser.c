@@ -20,10 +20,19 @@ MDBlock *block_parsing(MDBlock *curr_block, char *target_str) {
 
   new_block = blockquote_parser(curr_block, target_str);
   if (new_block != NULL && new_block == curr_block) {
-    printf("blockquote block\n");
+    printf("read content of blockquote block\n");
     return NULL;
   } else if (new_block != NULL) {
-    printf("blockquote block\n");
+    printf("new blockquote block\n");
+    return new_block;
+  }
+
+  new_block = ordered_list_parser(curr_block, target_str);
+  if (new_block != NULL && new_block == curr_block) {
+    printf("read content of ordered list block\n");
+    return NULL;
+  } else if (new_block != NULL) {
+    printf("new ordered list block\n");
     return new_block;
   }
 
@@ -228,6 +237,91 @@ MDBlock *blockquote_parser(MDBlock *block, char *line) {
     new_block->content = content;
     new_block->tag = "blockquote";
     new_block->block = BLOCKQUOTE;
+    new_block->type = BLOCK;
+    new_block->child = NULL;
+    new_block->next = NULL;
+    return new_block;
+  }
+
+  return NULL;
+}
+
+MDBlock *ordered_list_parser(MDBlock *block, char *line) {
+  if (is_empty_or_whitespace(line)) {
+    printf("ordered list empty line\n");
+    return NULL;
+  } else {
+    printf("ordered list line: %s\n", line);
+  }
+
+  char *line_ptr = line;
+  int line_length = strlen(line_ptr);
+
+  if (!isdigit((unsigned char)*line_ptr)) {
+    return NULL;
+  }
+
+  while (*line_ptr && isdigit((unsigned char)*line_ptr)) {
+    line_ptr++;
+  }
+
+  if (*line_ptr != '.') {
+    return NULL;
+  }
+  line_ptr++;
+
+  if (!isspace((unsigned char)*line_ptr)) {
+    return NULL;
+  }
+
+  // Read content in ordered list
+  if (block != NULL && block->block == ORDERED_LIST) {
+    size_t len = strlen(block->content) + strlen(line) + 2;
+    char *content = malloc(len);
+    if (!content) {
+      perror("malloc failed");
+      return NULL;
+    }
+
+    sprintf(content, "%s%s\n", block->content, line);
+    free(block->content);
+    block->content = content;
+
+    return block;
+  }
+
+  if (block == NULL || block->block != ORDERED_LIST) {
+    char *line_ptr = line;
+
+    if (!*line_ptr || *line_ptr != '1') {
+      return NULL;
+    }
+    line_ptr++;
+    if (*line_ptr != '.') {
+      return NULL;
+    }
+    line_ptr++;
+    if (!isspace((unsigned char)*line_ptr)) {
+      return NULL;
+    }
+
+    MDBlock *new_block = malloc(sizeof(MDBlock));
+    if (new_block == NULL) {
+      perror("malloc failed");
+      return NULL;
+    }
+
+    size_t len = strlen(line);
+    char *content = malloc(len + 2);
+    if (!content) {
+      perror("malloc failed");
+      return NULL;
+    }
+
+    sprintf(content, "%s\n", line);
+    new_block->content = content;
+    new_block->tag = "ol";
+    new_block->block = ORDERED_LIST;
     new_block->type = BLOCK;
     new_block->child = NULL;
     new_block->next = NULL;

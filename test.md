@@ -64,3 +64,19 @@ A simple paragraph
 
 > Ending quote
 > bye
+
+## List test
+The numbers don’t have to be in numerical order, but the list should start with the number one.
+
+1. First item
+2. Second item
+3. Third item
+  
+1. First item
+1. Second item
+1. Third item
+
+1. First item
+8. Second item
+3. Third item
+5. Fourth item
