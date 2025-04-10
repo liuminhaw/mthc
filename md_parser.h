@@ -49,12 +49,14 @@ MDBlock* heading_parser(char *line);
 MDBlock* blockquote_parser(MDBlock *block, char *line);
 MDBlock* ordered_list_parser(MDBlock *block, char *line);
 MDBlock* unordered_list_parser(MDBlock *block, char *line);
+MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block, char *line);
 MDBlock* paragraph_parser(MDBlock* block, char* line);
 MDBlock* child_block_parsing(MDBlock *block);
 
 bool is_header_block(MDBlock block);
-bool is_unordered_list_syntax(char *cp);
 bool is_empty_or_whitespace(const char *str); 
+int is_ordered_list_syntax(char *str, int first_item); 
+int is_unordered_list_syntax(char *cp);
 
 void mdblock_content_update(MDBlock *block, char *content, char *formatter);
 

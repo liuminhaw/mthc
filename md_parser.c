@@ -63,6 +63,18 @@ MDBlock *block_parsing(MDBlock *curr_block, char *target_str) {
   return new_block;
 }
 
+MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
+                               char *target_str) {
+  MDBlock *new_block = list_item_parser(prnt_block, curr_block, target_str);
+  if (new_block != NULL) {
+    printf("list item block\n");
+    return new_block;
+  }
+
+  new_block = block_parsing(curr_block, target_str);
+  return new_block;
+}
+
 MDBlock *child_block_parsing(MDBlock *block) {
   printf("child block parsing content: %s\n", block->content);
   MDBlock *head_block = NULL;
@@ -77,7 +89,7 @@ MDBlock *child_block_parsing(MDBlock *block) {
   }
 
   for (int i = 0; i < line_count; i++) {
-    new_block = block_parsing(tail_block, lines[i]);
+    new_block = content_block_parsing(block, tail_block, lines[i]);
     if (new_block != NULL) {
       if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
         tail_block->child = child_block_parsing(tail_block);
@@ -218,17 +230,7 @@ MDBlock *ordered_list_parser(MDBlock *block, char *line) {
   }
 
   if (block == NULL || block->block != ORDERED_LIST) {
-    char *line_ptr = line;
-
-    if (!*line_ptr || *line_ptr != '1') {
-      return NULL;
-    }
-    line_ptr++;
-    if (*line_ptr != '.') {
-      return NULL;
-    }
-    line_ptr++;
-    if (!isspace((unsigned char)*line_ptr)) {
+    if (!is_ordered_list_syntax(line, 1)) {
       return NULL;
     }
 
@@ -275,6 +277,37 @@ MDBlock *unordered_list_parser(MDBlock *block, char *line) {
   return NULL;
 }
 
+MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
+                          char *line) {
+  printf("list item parsing: %s\n", line);
+  printf("parent block: %d\n", prnt_block->block);
+
+  if (is_empty_or_whitespace(line) || prnt_block == NULL) {
+    return NULL;
+  }
+
+  int offset = 0;
+  switch (prnt_block->block) {
+  case ORDERED_LIST:
+    offset = is_ordered_list_syntax(line, 1);
+    break;
+  case UNORDERED_LIST:
+    offset = is_unordered_list_syntax(line);
+    break;
+  default:
+    return NULL;
+  }
+
+  if (!offset) {
+    return NULL;
+  }
+
+  char *line_ptr = line + offset;
+  MDBlock *new_block = new_mdblock(line_ptr, "li", LIST_ITEM, BLOCK, 0);
+
+  return new_block;
+}
+
 MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
                      TagType type, int content_newline) {
   MDBlock *block = malloc(sizeof(MDBlock));
@@ -315,14 +348,48 @@ bool is_header_block(MDBlock block) {
   return 1 <= block.block && block.block <= 6;
 }
 
-bool is_unordered_list_syntax(char *str) {
+// Returned int is the number of characters in the prefix of the list item
+int is_ordered_list_syntax(char *str, int first_item) {
+  if (str == NULL || strlen(str) < 3 || !isdigit((unsigned char)*str)) {
+    return 0;
+  }
+
+  int prefix_count = 0;
+  // If first_item is true, need to check if content starts with "1. "
+  if (first_item) {
+    if (strncmp(str, "1. ", 3) != 0) {
+      return 3;
+    }
+  }
+
+  while (isdigit((unsigned char)*str)) {
+    str++;
+    prefix_count++;
+  }
+
+  if (*str != '.') {
+    return 0;
+  }
+  str++;
+  prefix_count++;
+
+  if (!isspace((unsigned char)*str)) {
+    return 0;
+  }
+  prefix_count++;
+
+  return prefix_count;
+}
+
+// Returned int is the number of characters in the prefix of the list item
+int is_unordered_list_syntax(char *str) {
   if (str == NULL || strlen(str) < 2) {
     return 0;
   }
 
   if (strncmp(str, "- ", 2) == 0 || strncmp(str, "* ", 2) == 0 ||
       strncmp(str, "+ ", 2) == 0) {
-    return 1;
+    return 2;
   }
 
   return 0;

@@ -9,6 +9,7 @@
 
 void ltrim_space(char *str);
 void print_html(MDBlock *block);
+void child_parsing_exec(MDBlock *block);
 
 int main(int argc, char *argv[]) {
   MDBlock *head_block = NULL;
@@ -26,10 +27,7 @@ int main(int argc, char *argv[]) {
     if (new_block != NULL) {
       printf("block: %d, content: %s\n", new_block->block, new_block->content);
 
-      if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
-        // Parse for child block
-        tail_block->child = child_block_parsing(tail_block);
-      }
+      child_parsing_exec(tail_block);
 
       if (head_block == NULL) {
         head_block = new_block;
@@ -44,6 +42,8 @@ int main(int argc, char *argv[]) {
   }
   fclose(md_file);
 
+  child_parsing_exec(tail_block);
+
   // Traverse block list
   printf("\n=== Traverse block list ===\n");
   traverse_block(head_block);
@@ -53,6 +53,20 @@ int main(int argc, char *argv[]) {
   print_html(head_block);
 
   return 0;
+}
+
+void child_parsing_exec(MDBlock *block) {
+  if (block) {
+    switch (block->block) {
+    case BLOCKQUOTE:
+    case ORDERED_LIST:
+    case UNORDERED_LIST:
+      block->child = child_block_parsing(block);
+      break;
+    default:
+      break;
+    }
+  }
 }
 
 void print_html(MDBlock *block) {
