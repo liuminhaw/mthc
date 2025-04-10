@@ -21,6 +21,7 @@ typedef enum {
   PARAGRAPH,
   BLOCKQUOTE,
   ORDERED_LIST,
+  UNORDERED_LIST,
   LIST_ITEM,
   SECTION_BREAK,
 } BlockTag;
@@ -40,15 +41,22 @@ typedef struct MDBlock {
 } MDBlock;
 
 
+MDBlock* new_mdblock(char *content, char *html_tag, BlockTag block_tag, 
+                     TagType type, int content_newline);
+
 MDBlock* block_parsing(MDBlock *block, char *target_str);
 MDBlock* heading_parser(char *line);
 MDBlock* blockquote_parser(MDBlock *block, char *line);
 MDBlock* ordered_list_parser(MDBlock *block, char *line);
+MDBlock* unordered_list_parser(MDBlock *block, char *line);
 MDBlock* paragraph_parser(MDBlock* block, char* line);
 MDBlock* child_block_parsing(MDBlock *block);
 
 bool is_header_block(MDBlock block);
+bool is_unordered_list_syntax(char *cp);
 bool is_empty_or_whitespace(const char *str); 
+
+void mdblock_content_update(MDBlock *block, char *content, char *formatter);
 
 char* blocktag_to_string(BlockTag block);
 char* tagtype_to_string(TagType type);

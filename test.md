@@ -65,7 +65,7 @@ A simple paragraph
 > Ending quote
 > bye
 
-## List test
+## Ordered List test
 The numbers don’t have to be in numerical order, but the list should start with the number one.
 
 1. First item
@@ -80,3 +80,17 @@ The numbers don’t have to be in numerical order, but the list should start wit
 8. Second item
 3. Third item
 5. Fourth item
+
+## Unordered List test
+
+* First item
+* Second item
+* Third item
+
+- First item
+- Second item
+- Third item
+
++ First item
++ Second item
++ Third item
