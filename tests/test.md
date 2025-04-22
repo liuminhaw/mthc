@@ -78,7 +78,7 @@ The numbers don’t have to be in numerical order, but the list should start wit
 
 1. First item
 new line in list
-    another new line
+another new line
 1. Second item
 3. Third item
 5. Fourth item

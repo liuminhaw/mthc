@@ -14,3 +14,10 @@ main.o: main.c md_parser.h file_reader.h
 
 mthc: main.o md_parser.o file_reader.o debug.o
 	$(CC) -o mthc main.o md_parser.o file_reader.o debug.o
+
+.PHONY: check
+SHELL := /bin/bash
+
+check:
+	@echo "Running project check..."
+	@./scripts/check.sh
