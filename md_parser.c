@@ -91,6 +91,9 @@ MDBlock *child_block_parsing(MDBlock *block) {
   for (int i = 0; i < line_count; i++) {
     new_block = content_block_parsing(block, tail_block, lines[i]);
     if (new_block != NULL) {
+      if (new_block == tail_block) {
+        continue;
+      }
       if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
         tail_block->child = child_block_parsing(tail_block);
       }
@@ -205,23 +208,6 @@ MDBlock *ordered_list_parser(MDBlock *block, char *line) {
   char *line_ptr = line;
   int line_length = strlen(line_ptr);
 
-  if (!isdigit((unsigned char)*line_ptr)) {
-    return NULL;
-  }
-
-  while (*line_ptr && isdigit((unsigned char)*line_ptr)) {
-    line_ptr++;
-  }
-
-  if (*line_ptr != '.') {
-    return NULL;
-  }
-  line_ptr++;
-
-  if (!isspace((unsigned char)*line_ptr)) {
-    return NULL;
-  }
-
   // Read content in ordered list
   if (block != NULL && block->block == ORDERED_LIST) {
     mdblock_content_update(block, line, "%s%s\n");
@@ -289,16 +275,20 @@ MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
   int offset = 0;
   switch (prnt_block->block) {
   case ORDERED_LIST:
-    offset = is_ordered_list_syntax(line, 1);
+    offset = is_ordered_list_syntax(line, 0);
     break;
   case UNORDERED_LIST:
     offset = is_unordered_list_syntax(line);
     break;
   default:
-    return NULL;
+    offset = 0;
   }
 
   if (!offset) {
+    if (prev_block != NULL && prev_block->block == LIST_ITEM) {
+      mdblock_content_update(prev_block, line, "%s %s");
+      return prev_block;
+    }
     return NULL;
   }
 
@@ -357,8 +347,10 @@ int is_ordered_list_syntax(char *str, int first_item) {
   int prefix_count = 0;
   // If first_item is true, need to check if content starts with "1. "
   if (first_item) {
-    if (strncmp(str, "1. ", 3) != 0) {
+    if (strncmp(str, "1. ", 3) == 0) {
       return 3;
+    } else {
+      return 0;
     }
   }
 
