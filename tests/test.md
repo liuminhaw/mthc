@@ -39,6 +39,7 @@ separated by a new line
 
 New section paragraph  
 with two space at the end of the first line
+> This is just a paragraph
 
 ## Blockquotes test
 > This is a sample blockquote
@@ -74,12 +75,14 @@ The numbers don’t have to be in numerical order, but the list should start wit
   
 1. First item
 1. Second item
+    > Indented quote
 1. Third item
 
 1. First item
-new line in list
-another new line
+fake newline
+another fake new line
 1. Second item
+    indented line
 3. Third item
 5. Fourth item
 

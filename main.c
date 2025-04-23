@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
   while ((line = read_line(md_file, true)) != NULL) {
     printf("line: %s\n", line);
 
-    new_block = block_parsing(tail_block, line);
+    new_block = block_parsing(NULL, tail_block, line);
 
     if (new_block != NULL) {
       printf("block: %d, content: %s\n", new_block->block, new_block->content);
@@ -83,6 +83,8 @@ void print_html(MDBlock *block) {
     printf("<%s>\n", block->tag);
     print_html(block->child);
     printf("</%s>\n", block->tag);
+  } else if (block->block == PLAIN) {
+    printf("%s\n", block->content);
   } else {
     printf("<%s>\n", block->tag);
     printf("%s\n", block->content);

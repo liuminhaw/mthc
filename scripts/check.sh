@@ -11,12 +11,15 @@ main() {
     echo "Generate html from test markdown..."
     ./mthc ${_TEST_MD_FILE} | sed -n -e '1,/^=== Generate HTML ===$/d' -e 'p' >${_TEST_HTML_RESULT_FILE}
 
+    sed -i 's/[[:blank:]]\+$//' ${_TEST_HTML_RESULT_FILE}
+    sed -i 's/[[:blank:]]\+$//' ${_TEST_EXPECTED_HTML_RESULT_FILE}
+
     echo "Compare generated html with expected result..."
     diff ${_TEST_HTML_RESULT_FILE} ${_TEST_EXPECTED_HTML_RESULT_FILE}
-    if (( $? != 0 )); then
+    if (($? != 0)); then
         echo "Test failed: generated HTML does not match expected result."
         exit 1
-    else 
+    else
         echo "Test passed: generated HTML matches expected result."
     fi
 }

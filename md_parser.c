@@ -8,7 +8,10 @@
 #include "file_reader.h"
 #include "md_parser.h"
 
-MDBlock *block_parsing(MDBlock *curr_block, char *target_str) {
+static const int INDENT_SIZE = 4;
+
+MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
+                       char *target_str) {
   printf("parsing block: %s\n", target_str);
   MDBlock *new_block = NULL;
 
@@ -45,6 +48,12 @@ MDBlock *block_parsing(MDBlock *curr_block, char *target_str) {
     return new_block;
   }
 
+  new_block = plain_parser(prnt_block, curr_block, target_str);
+  if (new_block != NULL) {
+    printf("new plain block\n");
+    return new_block;
+  }
+
   new_block = paragraph_parser(curr_block, target_str);
   if (new_block == curr_block) {
     printf("paragraph block\n");
@@ -68,28 +77,31 @@ MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
   MDBlock *new_block = list_item_parser(prnt_block, curr_block, target_str);
   if (new_block != NULL) {
     printf("list item block\n");
+    if (strchr(new_block->content, '\n') != NULL) {
+      new_block->child = child_block_parsing(new_block);
+    }
     return new_block;
   }
 
-  new_block = block_parsing(curr_block, target_str);
+  new_block = block_parsing(prnt_block, curr_block, target_str);
   return new_block;
 }
 
-MDBlock *child_block_parsing(MDBlock *block) {
-  printf("child block parsing content: %s\n", block->content);
+MDBlock *child_block_parsing(MDBlock *prnt_block) {
+  printf("child block parsing content: %s\n", prnt_block->content);
   MDBlock *head_block = NULL;
   MDBlock *tail_block = head_block;
   MDBlock *new_block = NULL;
 
   int line_count = 0;
-  char **lines = content_splitter(block->content, '\n', &line_count);
+  char **lines = content_splitter(prnt_block->content, '\n', &line_count);
   if (lines == NULL) {
     perror("content_splitter failed");
     return NULL;
   }
 
   for (int i = 0; i < line_count; i++) {
-    new_block = content_block_parsing(block, tail_block, lines[i]);
+    new_block = content_block_parsing(prnt_block, tail_block, lines[i]);
     if (new_block != NULL) {
       if (new_block == tail_block) {
         continue;
@@ -191,7 +203,8 @@ MDBlock *blockquote_parser(MDBlock *block, char *line) {
   }
 
   if (block == NULL || block->block == SECTION_BREAK ||
-      is_header_block(*block)) {
+      is_header_block(*block) || block->block == LIST_ITEM ||
+      block->block == PLAIN) {
     MDBlock *new_block = new_mdblock(line, "blockquote", BLOCKQUOTE, BLOCK, 1);
 
     return new_block;
@@ -286,7 +299,12 @@ MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
 
   if (!offset) {
     if (prev_block != NULL && prev_block->block == LIST_ITEM) {
-      mdblock_content_update(prev_block, line, "%s %s");
+      if (is_indented_line(INDENT_SIZE, line)) {
+        char *line_ptr = line + INDENT_SIZE;
+        mdblock_content_update(prev_block, line_ptr, "%s\n%s");
+      } else {
+        mdblock_content_update(prev_block, line, "%s %s");
+      }
       return prev_block;
     }
     return NULL;
@@ -294,6 +312,20 @@ MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
 
   char *line_ptr = line + offset;
   MDBlock *new_block = new_mdblock(line_ptr, "li", LIST_ITEM, BLOCK, 0);
+
+  return new_block;
+}
+
+MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *block, char *line) {
+  if (is_empty_or_whitespace(line) || prnt_block == NULL) {
+    return NULL;
+  }
+
+  if (prnt_block->block != LIST_ITEM || block != NULL) {
+    return NULL;
+  }
+
+  MDBlock *new_block = new_mdblock(line, "", PLAIN, INLINE, 0);
 
   return new_block;
 }
@@ -387,6 +419,22 @@ int is_unordered_list_syntax(char *str) {
   return 0;
 }
 
+// is_indented_line checks if the line is indented with `count` spaces.
+// Returns `count` if the line is indented with `count` spaces, otherwise
+// returns 0.
+int is_indented_line(int count, char *str) {
+  if (str == NULL || strlen(str) < count) {
+    return 0;
+  }
+
+  for (int i = 0; i < count; i++) {
+    if (str[i] != ' ') {
+      return 0;
+    }
+  }
+  return count;
+}
+
 /* Returns 1 if the string is empty or only whitespace, otherwise returns 0 */
 bool is_empty_or_whitespace(const char *str) {
   // Optional: Handle NULL pointers as empty
@@ -439,6 +487,14 @@ char *blocktag_to_string(BlockTag block) {
     return "SECTION BREAK";
   case BLOCKQUOTE:
     return "BLOCKQUOTE";
+  case ORDERED_LIST:
+    return "ORDERED LIST";
+  case UNORDERED_LIST:
+    return "UNORDERED LIST";
+  case LIST_ITEM:
+    return "LIST ITEM";
+  case PLAIN:
+    return "PLAIN";
   default:
     return "INVALID";
   }

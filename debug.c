@@ -59,7 +59,9 @@ void traverse_block(MDBlock *block) {
     printf("block: %s, type: %s, tag: %s, content: %s\n", btag, ttype,
            block->tag, sub_content);
   }
-  // printf("traveling to child block\n");
+  if (block->child != NULL) {
+    printf("traveling to child block\n");
+  }
   traverse_block(block->child);
   // printf("traveling to next block\n");
   traverse_block(block->next);
