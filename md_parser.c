@@ -10,66 +10,33 @@
 
 static const int INDENT_SIZE = 4;
 
+const int parsers_count = 7;
+Parsers parsers[] = {{heading_parser, 0},      {blockquote_parser, 1},
+                     {ordered_list_parser, 1}, {unordered_list_parser, 1},
+                     {plain_parser, 0},        {paragraph_parser, 1},
+                     {section_break_parser, 0}};
+
 MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
                        char *target_str) {
   printf("parsing block: %s\n", target_str);
   MDBlock *new_block = NULL;
 
-  new_block = heading_parser(target_str);
-  if (new_block != NULL) {
-    printf("heading block\n");
-    return new_block;
+  for (int i = 0; i < parsers_count; i++) {
+    new_block = parsers[i].parser(prnt_block, curr_block, target_str);
+    if (parsers[i].multiline) {
+      if (new_block != NULL && new_block == curr_block) {
+        return NULL;
+      }
+    }
+    if (new_block != NULL) {
+      if (new_block != curr_block && curr_block != NULL) {
+        child_parsing_exec(curr_block);
+      }
+      return new_block;
+    }
   }
 
-  new_block = blockquote_parser(curr_block, target_str);
-  if (new_block != NULL && new_block == curr_block) {
-    printf("read content of blockquote block\n");
-    return NULL;
-  } else if (new_block != NULL) {
-    printf("new blockquote block\n");
-    return new_block;
-  }
-
-  new_block = ordered_list_parser(curr_block, target_str);
-  if (new_block != NULL && new_block == curr_block) {
-    printf("read content of ordered list block\n");
-    return NULL;
-  } else if (new_block != NULL) {
-    printf("new ordered list block\n");
-    return new_block;
-  }
-
-  new_block = unordered_list_parser(curr_block, target_str);
-  if (new_block != NULL && new_block == curr_block) {
-    printf("read content of unordered list block\n");
-    return NULL;
-  } else if (new_block != NULL) {
-    printf("new unordered list block\n");
-    return new_block;
-  }
-
-  new_block = plain_parser(prnt_block, curr_block, target_str);
-  if (new_block != NULL) {
-    printf("new plain block\n");
-    return new_block;
-  }
-
-  new_block = paragraph_parser(curr_block, target_str);
-  if (new_block == curr_block) {
-    printf("paragraph block\n");
-    return NULL;
-  } else if (new_block != NULL) {
-    printf("paragraph block\n");
-    return new_block;
-  }
-
-  new_block = malloc(sizeof(MDBlock));
-  new_block->block = SECTION_BREAK;
-  new_block->content = NULL;
-  new_block->type = INLINE;
-  new_block->child = NULL;
-  new_block->next = NULL;
-  return new_block;
+  return NULL;
 }
 
 MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
@@ -78,6 +45,7 @@ MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
   if (new_block != NULL) {
     printf("list item block\n");
     if (strchr(new_block->content, '\n') != NULL) {
+      printf("parse list item child block\n");
       new_block->child = child_block_parsing(new_block);
     }
     return new_block;
@@ -85,6 +53,20 @@ MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
 
   new_block = block_parsing(prnt_block, curr_block, target_str);
   return new_block;
+}
+
+void child_parsing_exec(MDBlock *block) {
+  if (block) {
+    switch (block->block) {
+    case BLOCKQUOTE:
+    case ORDERED_LIST:
+    case UNORDERED_LIST:
+      block->child = child_block_parsing(block);
+      break;
+    default:
+      break;
+    }
+  }
 }
 
 MDBlock *child_block_parsing(MDBlock *prnt_block) {
@@ -106,9 +88,6 @@ MDBlock *child_block_parsing(MDBlock *prnt_block) {
       if (new_block == tail_block) {
         continue;
       }
-      if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
-        tail_block->child = child_block_parsing(tail_block);
-      }
       if (head_block == NULL) {
         head_block = new_block;
         tail_block = head_block;
@@ -118,14 +97,12 @@ MDBlock *child_block_parsing(MDBlock *prnt_block) {
       }
     }
   }
-  if (tail_block != NULL && tail_block->block == BLOCKQUOTE) {
-    tail_block->child = child_block_parsing(tail_block);
-  }
+  child_parsing_exec(tail_block);
 
   return head_block;
 }
 
-MDBlock *heading_parser(char *line) {
+MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line) {
   int line_length = strlen(line);
   int heading_level = 0;
 
@@ -159,15 +136,16 @@ MDBlock *heading_parser(char *line) {
   return NULL;
 }
 
-MDBlock *paragraph_parser(MDBlock *block, char *line) {
+MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                          char *line) {
   if (is_empty_or_whitespace(line)) {
     return NULL;
   }
 
-  if (block != NULL && block->block == PARAGRAPH) {
-    mdblock_content_update(block, line, "%s %s");
+  if (curr_block != NULL && curr_block->block == PARAGRAPH) {
+    mdblock_content_update(curr_block, line, "%s %s");
 
-    return block;
+    return curr_block;
   }
 
   MDBlock *new_block = new_mdblock(line, "p", PARAGRAPH, BLOCK, 0);
@@ -175,7 +153,8 @@ MDBlock *paragraph_parser(MDBlock *block, char *line) {
   return new_block;
 }
 
-MDBlock *blockquote_parser(MDBlock *block, char *line) {
+MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                           char *line) {
   if (is_empty_or_whitespace(line)) {
     return NULL;
   }
@@ -196,15 +175,15 @@ MDBlock *blockquote_parser(MDBlock *block, char *line) {
     line++;
   }
 
-  if (block != NULL && block->block == BLOCKQUOTE) {
-    mdblock_content_update(block, line, "%s%s\n");
+  if (curr_block != NULL && curr_block->block == BLOCKQUOTE) {
+    mdblock_content_update(curr_block, line, "%s%s\n");
 
-    return block;
+    return curr_block;
   }
 
-  if (block == NULL || block->block == SECTION_BREAK ||
-      is_header_block(*block) || block->block == LIST_ITEM ||
-      block->block == PLAIN) {
+  if (curr_block == NULL || curr_block->block == SECTION_BREAK ||
+      is_header_block(*curr_block) || curr_block->block == LIST_ITEM ||
+      curr_block->block == PLAIN) {
     MDBlock *new_block = new_mdblock(line, "blockquote", BLOCKQUOTE, BLOCK, 1);
 
     return new_block;
@@ -213,7 +192,8 @@ MDBlock *blockquote_parser(MDBlock *block, char *line) {
   return NULL;
 }
 
-MDBlock *ordered_list_parser(MDBlock *block, char *line) {
+MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                             char *line) {
   if (is_empty_or_whitespace(line)) {
     return NULL;
   }
@@ -222,13 +202,13 @@ MDBlock *ordered_list_parser(MDBlock *block, char *line) {
   int line_length = strlen(line_ptr);
 
   // Read content in ordered list
-  if (block != NULL && block->block == ORDERED_LIST) {
-    mdblock_content_update(block, line, "%s%s\n");
+  if (curr_block != NULL && curr_block->block == ORDERED_LIST) {
+    mdblock_content_update(curr_block, line, "%s%s\n");
 
-    return block;
+    return curr_block;
   }
 
-  if (block == NULL || block->block != ORDERED_LIST) {
+  if (curr_block == NULL || curr_block->block != ORDERED_LIST) {
     if (!is_ordered_list_syntax(line, 1)) {
       return NULL;
     }
@@ -241,7 +221,8 @@ MDBlock *ordered_list_parser(MDBlock *block, char *line) {
   return NULL;
 }
 
-MDBlock *unordered_list_parser(MDBlock *block, char *line) {
+MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                               char *line) {
   if (is_empty_or_whitespace(line)) {
     return NULL;
   }
@@ -249,22 +230,15 @@ MDBlock *unordered_list_parser(MDBlock *block, char *line) {
   char *line_ptr = line;
   int line_length = strlen(line_ptr);
 
-  if (!is_unordered_list_syntax(line)) {
-    printf("init check: not unordered list syntax\n");
-    return NULL;
+  if (curr_block != NULL && curr_block->block == UNORDERED_LIST) {
+    mdblock_content_update(curr_block, line, "%s%s\n");
+
+    return curr_block;
   }
 
-  if (block != NULL && block->block == UNORDERED_LIST) {
-    mdblock_content_update(block, line, "%s%s\n");
-
-    return block;
-  }
-
-  if (block == NULL || block->block != UNORDERED_LIST) {
-    char *line_ptr = line;
-
+  if (curr_block == NULL || curr_block->block != UNORDERED_LIST) {
     if (!is_unordered_list_syntax(line)) {
-      printf("check: not unordered list syntax\n");
+      // printf("check: not unordered list syntax\n");
       return NULL;
     }
 
@@ -316,16 +290,27 @@ MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
   return new_block;
 }
 
-MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *block, char *line) {
+MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line) {
   if (is_empty_or_whitespace(line) || prnt_block == NULL) {
     return NULL;
   }
 
-  if (prnt_block->block != LIST_ITEM || block != NULL) {
+  if (prnt_block->block != LIST_ITEM || curr_block != NULL) {
     return NULL;
   }
 
   MDBlock *new_block = new_mdblock(line, "", PLAIN, INLINE, 0);
+
+  return new_block;
+}
+
+MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                              char *line) {
+  if (!is_empty_or_whitespace(line)) {
+    return NULL;
+  }
+
+  MDBlock *new_block = new_mdblock(NULL, NULL, SECTION_BREAK, INLINE, 0);
 
   return new_block;
 }
@@ -338,22 +323,25 @@ MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
     return NULL;
   }
 
-  size_t len = strlen(content);
-  if (content_newline) {
-    len += 2; // +1 for '\n' and +1 for '\0'
-  } else {
-    len += 1; // +1 for '\0'
-  }
-  char *b_content = malloc(len);
-  if (!b_content) {
-    perror("malloc failed");
-    free(block);
-    return NULL;
-  }
-  if (content_newline) {
-    sprintf(b_content, "%s\n", content);
-  } else {
-    strcpy(b_content, content);
+  char *b_content = NULL;
+  if (content != NULL) {
+    size_t len = strlen(content);
+    if (content_newline) {
+      len += 2; // +1 for '\n' and +1 for '\0'
+    } else {
+      len += 1; // +1 for '\0'
+    }
+    b_content = malloc(len);
+    if (!b_content) {
+      perror("malloc failed");
+      free(block);
+      return NULL;
+    }
+    if (content_newline) {
+      sprintf(b_content, "%s\n", content);
+    } else {
+      strcpy(b_content, content);
+    }
   }
 
   block->content = b_content;

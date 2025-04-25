@@ -102,7 +102,10 @@ print_result() {
 
 main() {
     echo "Compile mthc program..."
-    make mthc
+    if ! make mthc; then
+        echo "${_RED}Failed to compile mthc program.${_RESET}"
+        exit 1
+    fi
     echo ""
 
     local _files=("${_TEST_DIR}"/*.md)

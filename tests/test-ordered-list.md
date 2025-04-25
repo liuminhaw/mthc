@@ -3,7 +3,13 @@ The numbers don’t have to be in numerical order, but the list should start wit
 
 1. First item
 2. Second item
+    - indented unordered
+    - indented unordered 2
 3. Third item
+    1. indented ordered
+        + multi-level indented
+        + multi-level indented 2
+    1. indented ordered 2
   
 1. First item
 1. Second item
