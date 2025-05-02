@@ -23,6 +23,7 @@ typedef enum {
   ORDERED_LIST,
   UNORDERED_LIST,
   LIST_ITEM,
+  CODEBLOCK,
   SECTION_BREAK,
   PLAIN // plain text that don't use any tag 
 } BlockTag;
@@ -56,6 +57,7 @@ MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line)
 MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block, char *line);
+MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
@@ -64,6 +66,7 @@ MDBlock* child_block_parsing(MDBlock *block);
 bool is_header_block(MDBlock block);
 bool is_empty_or_whitespace(const char *str); 
 int is_indented_line(int count, char *str);
+int is_indented_tab(char *str);
 int is_ordered_list_syntax(char *str, int first_item); 
 int is_unordered_list_syntax(char *cp);
 

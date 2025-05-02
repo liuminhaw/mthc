@@ -24,4 +24,10 @@ another fake new line
 3. Third item
 5. Fourth item
 
+1. Test indenting codeblock
+        func codeblock() {
+            return true
+        }
+1. item
+
 13. Should not be a list

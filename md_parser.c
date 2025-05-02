@@ -10,11 +10,11 @@
 
 static const int INDENT_SIZE = 4;
 
-const int parsers_count = 7;
+const int parsers_count = 8;
 Parsers parsers[] = {{heading_parser, 0},      {blockquote_parser, 1},
                      {ordered_list_parser, 1}, {unordered_list_parser, 1},
-                     {plain_parser, 0},        {paragraph_parser, 1},
-                     {section_break_parser, 0}};
+                     {codeblock_parser, 1},    {plain_parser, 0},
+                     {paragraph_parser, 1},    {section_break_parser, 0}};
 
 MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
                        char *target_str) {
@@ -155,7 +155,7 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block,
                            char *line) {
-  if (is_empty_or_whitespace(line)) {
+  if (is_empty_or_whitespace(line) || *line != '>') {
     return NULL;
   }
 
@@ -290,6 +290,38 @@ MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
   return new_block;
 }
 
+MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                          char *line) {
+  if (is_empty_or_whitespace(line)) {
+    return NULL;
+  }
+
+  char *line_ptr = line;
+  if (is_indented_line(INDENT_SIZE, line)) {
+    printf("indented line\n");
+    line_ptr += INDENT_SIZE;
+  } else if (is_indented_tab(line)) {
+    printf("indented tab\n");
+    line_ptr++;
+  } else {
+    return NULL;
+  }
+
+  if (curr_block != NULL && curr_block->block == CODEBLOCK) {
+    printf("code block content update\n");
+    mdblock_content_update(curr_block, line_ptr, "%s\n%s");
+    return curr_block;
+  }
+
+  if (curr_block == NULL || curr_block->block != CODEBLOCK) {
+    printf("new code block\n");
+    MDBlock *new_block = new_mdblock(line_ptr, "pre", CODEBLOCK, BLOCK, 0);
+    return new_block;
+  }
+
+  return NULL;
+}
+
 MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line) {
   if (is_empty_or_whitespace(line) || prnt_block == NULL) {
     return NULL;
@@ -307,9 +339,11 @@ MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line) {
 MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block,
                               char *line) {
   if (!is_empty_or_whitespace(line)) {
+    printf("section: not empty or whitespace\n");
     return NULL;
   }
 
+  printf("new section break\n");
   MDBlock *new_block = new_mdblock(NULL, NULL, SECTION_BREAK, INLINE, 0);
 
   return new_block;
@@ -421,6 +455,17 @@ int is_indented_line(int count, char *str) {
     }
   }
   return count;
+}
+
+int is_indented_tab(char *str) {
+  if (str == NULL || strlen(str) < 1) {
+    return 0;
+  }
+
+  if (*str == '\t') {
+    return 1;
+  }
+  return 0;
 }
 
 /* Returns 1 if the string is empty or only whitespace, otherwise returns 0 */
