@@ -24,6 +24,7 @@ typedef enum {
   UNORDERED_LIST,
   LIST_ITEM,
   CODEBLOCK,
+  HORIZONTAL_LINE,
   SECTION_BREAK,
   PLAIN // plain text that don't use any tag 
 } BlockTag;
@@ -58,6 +59,7 @@ MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, char *lin
 MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block, char *line);
 MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
+MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,char *line);
 MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);

@@ -12,4 +12,5 @@
 
 char *read_line(FILE *file, bool remove_newline);
 char **content_splitter(const char *content, char splitter, int *split_count);
+char *ltrim_space(char *str);
 

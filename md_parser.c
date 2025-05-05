@@ -10,11 +10,12 @@
 
 static const int INDENT_SIZE = 4;
 
-const int parsers_count = 8;
+const int parsers_count = 9;
 Parsers parsers[] = {{heading_parser, 0},      {blockquote_parser, 1},
                      {ordered_list_parser, 1}, {unordered_list_parser, 1},
-                     {codeblock_parser, 1},    {plain_parser, 0},
-                     {paragraph_parser, 1},    {section_break_parser, 0}};
+                     {codeblock_parser, 1},    {horizontal_line_parser, 0},
+                     {plain_parser, 0},        {paragraph_parser, 1},
+                     {section_break_parser, 0}};
 
 MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
                        char *target_str) {
@@ -319,6 +320,29 @@ MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block,
     return new_block;
   }
 
+  return NULL;
+}
+
+MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                                char *line) {
+  if (is_empty_or_whitespace(line)) {
+    return NULL;
+  }
+
+  char *trimmed_line = ltrim_space(line);
+
+  if (curr_block == NULL || curr_block->block == SECTION_BREAK) {
+    size_t len = strlen(trimmed_line);
+    if (len >= 3 &&
+        (strspn(trimmed_line, "-") == len || strspn(trimmed_line, "*") == len ||
+         strspn(trimmed_line, "_") == len)) {
+      MDBlock *new_block = new_mdblock(NULL, "hr", HORIZONTAL_LINE, BLOCK, 0);
+      free(trimmed_line);
+      return new_block;
+    }
+  }
+
+  free(trimmed_line);
   return NULL;
 }
 

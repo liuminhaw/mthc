@@ -1,7 +1,8 @@
+#include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 #include "file_reader.h"
 
@@ -14,7 +15,7 @@ char *read_line(FILE *file, bool remove_newline) {
     perror("Unable to allocate buffer");
     return NULL;
   }
-  
+
   while (fgets(buffer + len, size - len, file)) {
     len += strlen(buffer + len);
 
@@ -46,7 +47,6 @@ char *read_line(FILE *file, bool remove_newline) {
   return buffer;
 }
 
-// char **content_splitter(const char *content, char splitter, int *split_count) {
 char **content_splitter(const char *content, char splitter, int *split_count) {
   int count = 0;
   int capacity = MTHC_SPLITTER_CAP;
@@ -61,7 +61,7 @@ char **content_splitter(const char *content, char splitter, int *split_count) {
 
   while ((end = strchr(start, splitter)) != NULL) {
     size_t len = end - start; // len of current line
-    
+
     char *line = malloc(len + 1);
     if (!line) {
       perror("malloc failed");
@@ -124,4 +124,21 @@ char **content_splitter(const char *content, char splitter, int *split_count) {
 
   *split_count = count;
   return lines;
+}
+
+char *ltrim_space(char *str) {
+  char *p = str;
+  // skip leading whitespace
+  while (*p && isspace((unsigned char)*p)) {
+    p++;
+  }
+
+  char *trimmed_str = malloc(strlen(p) + 1);
+  if (!trimmed_str) {
+    perror("malloc failed");
+    return NULL;
+  }
+  strcpy(trimmed_str, p);
+
+  return trimmed_str;
 }

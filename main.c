@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,7 +6,6 @@
 #include "debug.h"
 #include "file_reader.h"
 
-void ltrim_space(char *str);
 void print_html(MDBlock *block);
 
 int main(int argc, char *argv[]) {
@@ -72,21 +70,11 @@ void print_html(MDBlock *block) {
     printf("%s\n", block->content);
   } else {
     printf("<%s>\n", block->tag);
-    printf("%s\n", block->content);
+    if (block->content != NULL) {
+      printf("%s\n", block->content);
+    }
     printf("</%s>\n", block->tag);
   }
 
   print_html(block->next);
-}
-
-void ltrim_space(char *str) {
-  char *p = str;
-  // skip leading whitespace
-  while (*p && isspace((unsigned char)*p)) {
-    p++;
-  }
-  // move if there are leading spaces
-  if (p != str) {
-    memmove(str, p, strlen(p) + 1);
-  }
 }
