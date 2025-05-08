@@ -31,7 +31,9 @@ typedef enum {
 
 typedef enum {
   BLOCK,
+  SELF_CLOSING,
   INLINE,
+  NONE,
 } TagType;
 
 typedef struct MDBlock {

@@ -336,7 +336,8 @@ MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,
     if (len >= 3 &&
         (strspn(trimmed_line, "-") == len || strspn(trimmed_line, "*") == len ||
          strspn(trimmed_line, "_") == len)) {
-      MDBlock *new_block = new_mdblock(NULL, "hr", HORIZONTAL_LINE, BLOCK, 0);
+      MDBlock *new_block =
+          new_mdblock(NULL, "hr", HORIZONTAL_LINE, SELF_CLOSING, 0);
       free(trimmed_line);
       return new_block;
     }
@@ -355,7 +356,7 @@ MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line) {
     return NULL;
   }
 
-  MDBlock *new_block = new_mdblock(line, "", PLAIN, INLINE, 0);
+  MDBlock *new_block = new_mdblock(line, "", PLAIN, NONE, 0);
 
   return new_block;
 }
@@ -563,6 +564,10 @@ char *tagtype_to_string(TagType type) {
     return "BLOCK";
   case INLINE:
     return "INLINE";
+  case SELF_CLOSING:
+    return "SELF CLOSING";
+  case NONE:
+    return "NONE";
   default:
     return "INVALID";
   }

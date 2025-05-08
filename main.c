@@ -66,14 +66,18 @@ void print_html(MDBlock *block) {
     printf("<%s>\n", block->tag);
     print_html(block->child);
     printf("</%s>\n", block->tag);
-  } else if (block->block == PLAIN) {
+  } else if (block->type == NONE) {
     printf("%s\n", block->content);
-  } else {
+  } else if (block->type == SELF_CLOSING) {
+    printf("<%s />\n", block->tag);
+  } else if (block->type == BLOCK) {
     printf("<%s>\n", block->tag);
     if (block->content != NULL) {
       printf("%s\n", block->content);
     }
     printf("</%s>\n", block->tag);
+  } else {
+    fprintf(stderr, "Unknown block type: %d\n", block->type);
   }
 
   print_html(block->next);
