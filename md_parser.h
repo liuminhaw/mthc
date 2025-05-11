@@ -9,6 +9,7 @@
 // #define PSR_H5_PATTERN "^#####\\s+(.*)$"
 // #define PSR_H6_PATTERN "^######\\s+(.*)$"
 
+#include "file_reader.h"
 
 typedef enum {
   INVALID,
@@ -54,12 +55,12 @@ typedef struct {
 MDBlock* new_mdblock(char *content, char *html_tag, BlockTag block_tag, 
                      TagType type, int content_newline);
 
-MDBlock* block_parsing(MDBlock *prnt_block, MDBlock *block, char *target_str);
+MDBlock* block_parsing(MDBlock *prnt_block, MDBlock *block, PeekReader *reader);
 MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
-MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block, char *line);
+MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block, PeekReader *reader);
 MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
 MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,char *line);
 MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);

@@ -143,7 +143,7 @@ char *ltrim_space(char *str) {
   return trimmed_str;
 }
 
-PeekReader *new_peek_reader(FILE *fp, int peek_count) {
+PeekReader *new_peek_reader_from_file(FILE *fp, int peek_count) {
   if (peek_count > MAX_PEEK) {
     return NULL;
   }
@@ -153,32 +153,53 @@ PeekReader *new_peek_reader(FILE *fp, int peek_count) {
     return NULL;
   }
 
-  if (!peek_reader_init(reader, fp, peek_count)) {
-    free(reader);
-    return NULL;
-  }
-
-  return reader;
-}
-
-int peek_reader_init(PeekReader *reader, FILE *fp, int peek_count) {
-  if (peek_count > MAX_PEEK) {
-    return 0;
-  }
-
-  reader->fp = fp;
+  reader->source_type = PEEK_SOURCE_FILE;
+  reader->source.fp = fp;
   reader->current = 0;
   reader->count = 0;
   reader->total = peek_count + 1;
 
   for (int i = 0; i < reader->total; i++) {
-    reader->buffer[i] = read_line(reader->fp, true);
+    reader->buffer[i] = read_line(reader->source.fp, true);
     if (reader->buffer[i]) {
       reader->count++;
     }
   }
 
-  return 1;
+  return reader;
+}
+
+PeekReader *new_peek_reader_from_lines(char **lines, int total_lines,
+                                       int peek_count) {
+  if (peek_count > MAX_PEEK) {
+    return NULL;
+  }
+
+  PeekReader *reader = malloc(sizeof(PeekReader));
+  if (!reader) {
+    return NULL;
+  }
+
+  reader->source_type = PEEK_SOURCE_STRING_ARRAY;
+  reader->source.str_array.lines = lines;
+  reader->source.str_array.total_lines = total_lines;
+  reader->source.str_array.line_idx = 0;
+  reader->current = 0;
+  reader->count = 0;
+  reader->total = peek_count + 1;
+
+  for (int i = 0; i < reader->total; i++) {
+    if (reader->source.str_array.line_idx < total_lines) {
+      reader->buffer[i] =
+          reader->source.str_array.lines[reader->source.str_array.line_idx];
+      reader->source.str_array.line_idx++;
+      reader->count++;
+    } else {
+      reader->buffer[i] = NULL;
+    }
+  }
+
+  return reader;
 }
 
 char *peek_reader_current(PeekReader *reader) {
@@ -197,11 +218,22 @@ char *peek_reader_peek(PeekReader *reader, int i) {
 
 int peek_reader_advance(PeekReader *reader) {
   int pos = reader->current;
-  int next = pos;
 
-  reader->buffer[pos] = read_line(reader->fp, true);
-  if (!reader->buffer[pos]) {
-    reader->count--;
+  if (reader->source_type == PEEK_SOURCE_FILE) {
+    reader->buffer[pos] = read_line(reader->source.fp, true);
+    if (!reader->buffer[pos]) {
+      reader->count--;
+    }
+  } else if (reader->source_type == PEEK_SOURCE_STRING_ARRAY) {
+    if (reader->source.str_array.line_idx <
+        reader->source.str_array.total_lines) {
+      reader->buffer[pos] =
+          reader->source.str_array.lines[reader->source.str_array.line_idx];
+      reader->source.str_array.line_idx++;
+    } else {
+      reader->buffer[pos] = NULL;
+      reader->count--;
+    }
   }
 
   // move current forward

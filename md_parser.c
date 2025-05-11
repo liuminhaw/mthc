@@ -18,7 +18,8 @@ Parsers parsers[] = {{heading_parser, 0},      {blockquote_parser, 1},
                      {section_break_parser, 0}};
 
 MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
-                       char *target_str) {
+                       PeekReader *reader) {
+  char *target_str = peek_reader_current(reader);
   printf("parsing block: %s\n", target_str);
   MDBlock *new_block = NULL;
 
@@ -41,8 +42,8 @@ MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
 }
 
 MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
-                               char *target_str) {
-  MDBlock *new_block = list_item_parser(prnt_block, curr_block, target_str);
+                               PeekReader *reader) {
+  MDBlock *new_block = list_item_parser(prnt_block, curr_block, reader);
   if (new_block != NULL) {
     printf("list item block\n");
     if (strchr(new_block->content, '\n') != NULL) {
@@ -52,7 +53,7 @@ MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
     return new_block;
   }
 
-  new_block = block_parsing(prnt_block, curr_block, target_str);
+  new_block = block_parsing(prnt_block, curr_block, reader);
   return new_block;
 }
 
@@ -83,8 +84,14 @@ MDBlock *child_block_parsing(MDBlock *prnt_block) {
     return NULL;
   }
 
-  for (int i = 0; i < line_count; i++) {
-    new_block = content_block_parsing(prnt_block, tail_block, lines[i]);
+  PeekReader *reader =
+      new_peek_reader_from_lines(lines, line_count, DEFAULT_PEEK_COUNT);
+  if (!reader) {
+    return NULL;
+  }
+
+  do {
+    new_block = content_block_parsing(prnt_block, tail_block, reader);
     if (new_block != NULL) {
       if (new_block == tail_block) {
         continue;
@@ -97,7 +104,9 @@ MDBlock *child_block_parsing(MDBlock *prnt_block) {
         tail_block = new_block;
       }
     }
-  }
+
+  } while (peek_reader_advance(reader));
+
   child_parsing_exec(tail_block);
 
   return head_block;
@@ -252,7 +261,8 @@ MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
 }
 
 MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
-                          char *line) {
+                          PeekReader *reader) {
+  char *line = peek_reader_current(reader);
   printf("list item parsing: %s\n", line);
   printf("parent block: %d\n", prnt_block->block);
 
