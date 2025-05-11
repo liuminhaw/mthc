@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include "debug.h"
@@ -15,8 +14,15 @@ int main(int argc, char *argv[]) {
 
   FILE *md_file = fopen(argv[1], "r");
 
-  char *line;
-  while ((line = read_line(md_file, true)) != NULL) {
+  int peek_count = 3;
+  PeekReader *reader = new_peek_reader(md_file, peek_count);
+  if (!reader) {
+    fprintf(stderr, "Failed to create peek reader\n");
+    return 1;
+  }
+
+  do {
+    char *line = peek_reader_current(reader);
     printf("line: %s\n", line);
 
     new_block = block_parsing(NULL, tail_block, line);
@@ -36,7 +42,7 @@ int main(int argc, char *argv[]) {
     }
 
     free(line);
-  }
+  } while (peek_reader_advance(reader));
   fclose(md_file);
 
   child_parsing_exec(tail_block);

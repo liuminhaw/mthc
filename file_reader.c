@@ -142,3 +142,70 @@ char *ltrim_space(char *str) {
 
   return trimmed_str;
 }
+
+PeekReader *new_peek_reader(FILE *fp, int peek_count) {
+  if (peek_count > MAX_PEEK) {
+    return NULL;
+  }
+
+  PeekReader *reader = malloc(sizeof(PeekReader));
+  if (!reader) {
+    return NULL;
+  }
+
+  if (!peek_reader_init(reader, fp, peek_count)) {
+    free(reader);
+    return NULL;
+  }
+
+  return reader;
+}
+
+int peek_reader_init(PeekReader *reader, FILE *fp, int peek_count) {
+  if (peek_count > MAX_PEEK) {
+    return 0;
+  }
+
+  reader->fp = fp;
+  reader->current = 0;
+  reader->count = 0;
+  reader->total = peek_count + 1;
+
+  for (int i = 0; i < reader->total; i++) {
+    reader->buffer[i] = read_line(reader->fp, true);
+    if (reader->buffer[i]) {
+      reader->count++;
+    }
+  }
+
+  return 1;
+}
+
+char *peek_reader_current(PeekReader *reader) {
+  return reader->buffer[reader->current];
+}
+
+char *peek_reader_peek(PeekReader *reader, int i) {
+  if (i <= 0 || i >= reader->total) {
+    return NULL;
+  }
+
+  int idx = (reader->current + i) % reader->total;
+
+  return reader->buffer[idx];
+}
+
+int peek_reader_advance(PeekReader *reader) {
+  int pos = reader->current;
+  int next = pos;
+
+  reader->buffer[pos] = read_line(reader->fp, true);
+  if (!reader->buffer[pos]) {
+    reader->count--;
+  }
+
+  // move current forward
+  reader->current = (reader->current + 1) % reader->total;
+
+  return reader->count > 0;
+}
