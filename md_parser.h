@@ -47,7 +47,7 @@ typedef struct MDBlock {
 } MDBlock;
 
 typedef struct {
-  MDBlock* (*parser)(MDBlock *prnt_block, MDBlock *curr_block, char *line);
+  MDBlock* (*parser)(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
   int multiline;
 } Parsers;
 
@@ -56,22 +56,24 @@ MDBlock* new_mdblock(char *content, char *html_tag, BlockTag block_tag,
                      TagType type, int content_newline);
 
 MDBlock* block_parsing(MDBlock *prnt_block, MDBlock *block, PeekReader *reader);
-MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
-MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
-MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
-MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
+MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
+MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
+MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
+MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block, PeekReader *reader);
-MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
-MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,char *line);
-MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
-MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
-MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line);
+MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
+MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
+MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
+MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
+MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock* child_block_parsing(MDBlock *block);
 
 bool is_header_block(MDBlock block);
 bool is_empty_or_whitespace(const char *str); 
 int is_indented_line(int count, char *str);
 int is_indented_tab(char *str);
+int is_heading_syntax(char **str);
+int is_heading_alternate_syntax(PeekReader *reader);
 int is_ordered_list_syntax(char *str, int first_item); 
 int is_unordered_list_syntax(char *cp);
 

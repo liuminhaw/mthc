@@ -19,12 +19,11 @@ Parsers parsers[] = {{heading_parser, 0},      {blockquote_parser, 1},
 
 MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
                        PeekReader *reader) {
-  char *target_str = peek_reader_current(reader);
-  printf("parsing block: %s\n", target_str);
+  printf("parsing block: %s\n", peek_reader_current(reader));
   MDBlock *new_block = NULL;
 
   for (int i = 0; i < parsers_count; i++) {
-    new_block = parsers[i].parser(prnt_block, curr_block, target_str);
+    new_block = parsers[i].parser(prnt_block, curr_block, reader);
     if (parsers[i].multiline) {
       if (new_block != NULL && new_block == curr_block) {
         return NULL;
@@ -112,42 +111,35 @@ MDBlock *child_block_parsing(MDBlock *prnt_block) {
   return head_block;
 }
 
-MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line) {
-  int line_length = strlen(line);
-  int heading_level = 0;
-
-  while (*line == '#') {
-    heading_level++;
-    line++;
-  }
-
-  // Make sure there is a space after header hash marks for it to be a header
-  if (!isspace((unsigned char)*line)) {
-    return NULL;
-  }
-
-  while (*line && isspace((unsigned char)*line)) {
-    line++;
-  }
-
-  if (heading_level > 0 && heading_level < 7) {
-    char *tag = malloc(3);
-    if (tag == NULL) {
-      perror("malloc failed");
+MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                        PeekReader *reader) {
+  char *line = peek_reader_current(reader);
+  char *line_ptr = line;
+  int level = is_heading_syntax(&line_ptr);
+  if (!level) {
+    level = is_heading_alternate_syntax(reader);
+    if (!level) {
       return NULL;
     }
-    sprintf(tag, "h%d", heading_level);
-
-    MDBlock *new_block = new_mdblock(line, tag, heading_level, BLOCK, 0);
-
-    return new_block;
+    line_ptr = line;
+    peek_reader_advance(reader);
   }
 
-  return NULL;
+  char *tag = malloc(3);
+  if (tag == NULL) {
+    perror("malloc failed");
+    return NULL;
+  }
+  sprintf(tag, "h%d", level);
+
+  MDBlock *new_block = new_mdblock(line_ptr, tag, level, BLOCK, 0);
+
+  return new_block;
 }
 
 MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
-                          char *line) {
+                          PeekReader *reader) {
+  char *line = peek_reader_current(reader);
   if (is_empty_or_whitespace(line)) {
     return NULL;
   }
@@ -164,7 +156,8 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
 }
 
 MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block,
-                           char *line) {
+                           PeekReader *reader) {
+  char *line = peek_reader_current(reader);
   if (is_empty_or_whitespace(line) || *line != '>') {
     return NULL;
   }
@@ -203,7 +196,8 @@ MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block,
 }
 
 MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
-                             char *line) {
+                             PeekReader *reader) {
+  char *line = peek_reader_current(reader);
   if (is_empty_or_whitespace(line)) {
     return NULL;
   }
@@ -232,7 +226,8 @@ MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
 }
 
 MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
-                               char *line) {
+                               PeekReader *reader) {
+  char *line = peek_reader_current(reader);
   if (is_empty_or_whitespace(line)) {
     return NULL;
   }
@@ -302,7 +297,8 @@ MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
 }
 
 MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block,
-                          char *line) {
+                          PeekReader *reader) {
+  char *line = peek_reader_current(reader);
   if (is_empty_or_whitespace(line)) {
     return NULL;
   }
@@ -334,7 +330,8 @@ MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block,
 }
 
 MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,
-                                char *line) {
+                                PeekReader *reader) {
+  char *line = peek_reader_current(reader);
   if (is_empty_or_whitespace(line)) {
     return NULL;
   }
@@ -357,7 +354,9 @@ MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,
   return NULL;
 }
 
-MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line) {
+MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                      PeekReader *reader) {
+  char *line = peek_reader_current(reader);
   if (is_empty_or_whitespace(line) || prnt_block == NULL) {
     return NULL;
   }
@@ -372,7 +371,8 @@ MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, char *line) {
 }
 
 MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block,
-                              char *line) {
+                              PeekReader *reader) {
+  char *line = peek_reader_current(reader);
   if (!is_empty_or_whitespace(line)) {
     printf("section: not empty or whitespace\n");
     return NULL;
@@ -425,6 +425,53 @@ MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
 
 bool is_header_block(MDBlock block) {
   return 1 <= block.block && block.block <= 6;
+}
+
+int is_heading_syntax(char **line) {
+  if (is_empty_or_whitespace(*line)) {
+    return 0;
+  }
+
+  int heading_level = 0;
+
+  while (**line == '#') {
+    heading_level++;
+    (*line)++;
+  }
+
+  if (!isspace((unsigned char)**line)) {
+    return 0;
+  }
+
+  while (**line && isspace((unsigned char)**line)) {
+    (*line)++;
+  }
+
+  if (heading_level > 0 && heading_level < 7) {
+    return heading_level;
+  }
+  return 0; // Not a header syntax
+}
+
+int is_heading_alternate_syntax(PeekReader *reader) {
+  char *line = peek_reader_current(reader);
+  if (is_empty_or_whitespace(line)) {
+    return 0;
+  }
+
+  char *next_line = peek_reader_peek(reader, 1);
+  if (next_line == NULL) {
+    return 0;
+  }
+  printf("peek next line: %s\n", next_line);
+  size_t len = strlen(next_line);
+  if (len >= 2 && strspn(next_line, "=") == len) {
+    return 1;
+  } else if (len >= 2 && strspn(next_line, "-") == len) {
+    return 2;
+  }
+
+  return 0;
 }
 
 // Returned int is the number of characters in the prefix of the list item

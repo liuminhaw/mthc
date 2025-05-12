@@ -26,3 +26,16 @@ Content for level 6 heading
 ####### H7 is not a valid heading
 
 ###This should not be a heading
+
+Alternate test
+==
+
+Alternate test H2
+------
+
+### Alternate test with hash
+---
+
+This should not be a heading
+
+===
