@@ -139,18 +139,27 @@ MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
                           PeekReader *reader) {
-  char *line = peek_reader_current(reader);
-  if (is_empty_or_whitespace(line)) {
-    return NULL;
+  MDBlock *new_block = NULL;
+  while (true) {
+    char *line = peek_reader_current(reader);
+    char *next_line = peek_reader_peek(reader, 1);
+
+    if (is_empty_or_whitespace(line)) {
+      break;
+    }
+    if (new_block != NULL) {
+      mdblock_content_update(new_block, line, "%s %s");
+    } else {
+      new_block = new_mdblock(line, "p", PARAGRAPH, BLOCK, 0);
+    }
+
+    if (!safe_paragraph_content(next_line)) {
+      printf("not safe paragraph content: %s\n", next_line);
+      break;
+    } else {
+      peek_reader_advance(reader);
+    }
   }
-
-  if (curr_block != NULL && curr_block->block == PARAGRAPH) {
-    mdblock_content_update(curr_block, line, "%s %s");
-
-    return curr_block;
-  }
-
-  MDBlock *new_block = new_mdblock(line, "p", PARAGRAPH, BLOCK, 0);
 
   return new_block;
 }
@@ -158,17 +167,12 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
 MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block,
                            PeekReader *reader) {
   char *line = peek_reader_current(reader);
-  if (is_empty_or_whitespace(line) || *line != '>') {
+  if (is_empty_or_whitespace(line)) {
     return NULL;
   }
 
   char *line_ptr = line;
-  int line_length = strlen(line_ptr);
-  while (*line_ptr == '>') {
-    line_ptr++;
-  }
-
-  if (!isspace((unsigned char)*line_ptr) && *line_ptr != '\0') {
+  if (!is_blockquote_syntax(line_ptr)) {
     return NULL;
   }
 
@@ -186,7 +190,7 @@ MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
   if (curr_block == NULL || curr_block->block == SECTION_BREAK ||
       is_header_block(*curr_block) || curr_block->block == LIST_ITEM ||
-      curr_block->block == PLAIN) {
+      curr_block->block == PLAIN || curr_block->block == PARAGRAPH) {
     MDBlock *new_block = new_mdblock(line, "blockquote", BLOCKQUOTE, BLOCK, 1);
 
     return new_block;
@@ -463,7 +467,7 @@ int is_heading_alternate_syntax(PeekReader *reader) {
   if (next_line == NULL) {
     return 0;
   }
-  printf("peek next line: %s\n", next_line);
+  // printf("peek next line: %s\n", next_line);
   size_t len = strlen(next_line);
   if (len >= 2 && strspn(next_line, "=") == len) {
     return 1;
@@ -472,6 +476,21 @@ int is_heading_alternate_syntax(PeekReader *reader) {
   }
 
   return 0;
+}
+
+int is_blockquote_syntax(char *str) {
+  if (str == NULL || *str != '>') {
+    return 0;
+  }
+
+  while (*str == '>') {
+    str++;
+  }
+  if (!isspace((unsigned char)*str) && *str != '\0') {
+    return 0;
+  }
+
+  return 1;
 }
 
 // Returned int is the number of characters in the prefix of the list item
@@ -567,6 +586,11 @@ bool is_empty_or_whitespace(const char *str) {
   }
   // The string is either empty or only contained whitespace.
   return 1;
+}
+
+bool safe_paragraph_content(char *str) {
+  return !is_empty_or_whitespace(str) && !is_indented_line(INDENT_SIZE, str) &&
+         !is_indented_tab(str) && is_blockquote_syntax(str) == 0;
 }
 
 void mdblock_content_update(MDBlock *block, char *content, char *formatter) {

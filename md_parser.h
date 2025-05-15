@@ -76,6 +76,8 @@ int is_heading_syntax(char **str);
 int is_heading_alternate_syntax(PeekReader *reader);
 int is_ordered_list_syntax(char *str, int first_item); 
 int is_unordered_list_syntax(char *cp);
+int is_blockquote_syntax(char *str);
+bool safe_paragraph_content(char *str);
 
 void child_parsing_exec(MDBlock *block);
 void mdblock_content_update(MDBlock *block, char *content, char *formatter);

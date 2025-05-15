@@ -20,5 +20,9 @@
 >Not a blockquote
 A simple paragraph
 
+paragraph
+> Should be blockquote
+
 > Ending quote
 > bye
+

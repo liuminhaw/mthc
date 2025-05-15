@@ -8,9 +8,7 @@ A simple paragraph
 Another simple paragraph
 
 New paragraph
-    func add(a, b int) int {
-        return a + b
-    }
+    Codeblock?
 Ending
 
 Just paragraph

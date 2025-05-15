@@ -48,8 +48,9 @@ void traverse_block(MDBlock *block) {
   char *btag = blocktag_to_string(block->block);
   char *ttype = tagtype_to_string(block->type);
   char *sub_content = literal_newline_substitution(block->content);
-  if (sub_content == NULL && block->block != SECTION_BREAK) {
-    // perror("literal_newline_substitution failed");
+  if (sub_content == NULL && block->block != SECTION_BREAK &&
+      block->block != HORIZONTAL_LINE) {
+    perror("literal_newline_substitution failed");
     return;
   }
 
