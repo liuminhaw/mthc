@@ -44,11 +44,12 @@ MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
                                PeekReader *reader) {
   MDBlock *new_block = list_item_parser(prnt_block, curr_block, reader);
   if (new_block != NULL) {
-    printf("list item block\n");
+    // printf("list item block content: %s\n", new_block->content);
     if (strchr(new_block->content, '\n') != NULL) {
       printf("parse list item child block\n");
       new_block->child = child_block_parsing(new_block);
     }
+    // printf("return list item block\n");
     return new_block;
   }
 
@@ -71,7 +72,7 @@ void child_parsing_exec(MDBlock *block) {
 }
 
 MDBlock *child_block_parsing(MDBlock *prnt_block) {
-  printf("child block parsing content: %s\n", prnt_block->content);
+  printf("child block parsing content:\n%s\n", prnt_block->content);
   MDBlock *head_block = NULL;
   MDBlock *tail_block = head_block;
   MDBlock *new_block = NULL;
@@ -103,7 +104,6 @@ MDBlock *child_block_parsing(MDBlock *prnt_block) {
         tail_block = new_block;
       }
     }
-
   } while (peek_reader_advance(reader));
 
   child_parsing_exec(tail_block);
@@ -153,7 +153,8 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
       new_block = new_mdblock(line, "p", PARAGRAPH, BLOCK, 0);
     }
 
-    if (!safe_paragraph_content(next_line)) {
+    // TODO: remove peek_reader_advance from main and advanced in parser
+    if (!safe_paragraph_content(reader, 1)) {
       printf("not safe paragraph content: %s\n", next_line);
       break;
     } else {
@@ -166,136 +167,149 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block,
                            PeekReader *reader) {
-  char *line = peek_reader_current(reader);
-  if (is_empty_or_whitespace(line)) {
-    return NULL;
-  }
+  MDBlock *new_block = NULL;
+  while (true) {
+    char *line = peek_reader_current(reader);
+    char *next_line = peek_reader_peek(reader, 1);
 
-  char *line_ptr = line;
-  if (!is_blockquote_syntax(line_ptr)) {
-    return NULL;
-  }
+    if (is_empty_or_whitespace(line) || !is_blockquote_syntax(line)) {
+      break;
+    }
 
-  // Removing leading '>' characters and spaces of the blockquote syntax
-  line++;
-  while (*line && isspace((unsigned char)*line)) {
+    // Removing leading '>' characters and spaces of the blockquote syntax
     line++;
+    while (*line && isspace((unsigned char)*line)) {
+      line++;
+    }
+
+    if (new_block == NULL) {
+      new_block = new_mdblock(line, "blockquote", BLOCKQUOTE, BLOCK, 1);
+    } else if (new_block != NULL) {
+      mdblock_content_update(new_block, line, "%s%s\n");
+    }
+
+    // TODO: remove peek_reader_advance from main and advanced in parser
+    if (!is_blockquote_syntax(next_line)) {
+      break;
+    } else {
+      peek_reader_advance(reader);
+    }
   }
-
-  if (curr_block != NULL && curr_block->block == BLOCKQUOTE) {
-    mdblock_content_update(curr_block, line, "%s%s\n");
-
-    return curr_block;
-  }
-
-  if (curr_block == NULL || curr_block->block == SECTION_BREAK ||
-      is_header_block(*curr_block) || curr_block->block == LIST_ITEM ||
-      curr_block->block == PLAIN || curr_block->block == PARAGRAPH) {
-    MDBlock *new_block = new_mdblock(line, "blockquote", BLOCKQUOTE, BLOCK, 1);
-
-    return new_block;
-  }
-
-  return NULL;
+  return new_block;
 }
 
 MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
                              PeekReader *reader) {
-  char *line = peek_reader_current(reader);
-  if (is_empty_or_whitespace(line)) {
-    return NULL;
-  }
+  MDBlock *new_block = NULL;
+  while (true) {
+    char *line = peek_reader_current(reader);
+    char *next_line = peek_reader_peek(reader, 1);
 
-  char *line_ptr = line;
-  int line_length = strlen(line_ptr);
-
-  // Read content in ordered list
-  if (curr_block != NULL && curr_block->block == ORDERED_LIST) {
-    mdblock_content_update(curr_block, line, "%s%s\n");
-
-    return curr_block;
-  }
-
-  if (curr_block == NULL || curr_block->block != ORDERED_LIST) {
-    if (!is_ordered_list_syntax(line, 1)) {
-      return NULL;
+    if (is_empty_or_whitespace(line)) {
+      break;
     }
 
-    MDBlock *new_block = new_mdblock(line, "ol", ORDERED_LIST, BLOCK, 1);
+    if (new_block != NULL) {
+      mdblock_content_update(new_block, line, "%s%s\n");
+    } else if (is_ordered_list_syntax(line, 1)) {
+      new_block = new_mdblock(line, "ol", ORDERED_LIST, BLOCK, 1);
+    } else {
+      break;
+    }
 
-    return new_block;
+    // TODO: remove peek_reader_advance from main and advanced in parser
+    if (safe_ordered_list_content(reader, 1)) {
+      printf("ordered list advance\n");
+      peek_reader_advance(reader);
+    } else {
+      printf("ordered list not advance\n");
+      break;
+    }
   }
 
-  return NULL;
+  return new_block;
 }
 
 MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
                                PeekReader *reader) {
-  char *line = peek_reader_current(reader);
-  if (is_empty_or_whitespace(line)) {
-    return NULL;
-  }
+  MDBlock *new_block = NULL;
+  while (true) {
+    char *line = peek_reader_current(reader);
+    char *next_line = peek_reader_peek(reader, 1);
 
-  char *line_ptr = line;
-  int line_length = strlen(line_ptr);
-
-  if (curr_block != NULL && curr_block->block == UNORDERED_LIST) {
-    mdblock_content_update(curr_block, line, "%s%s\n");
-
-    return curr_block;
-  }
-
-  if (curr_block == NULL || curr_block->block != UNORDERED_LIST) {
-    if (!is_unordered_list_syntax(line)) {
-      // printf("check: not unordered list syntax\n");
-      return NULL;
+    if (is_empty_or_whitespace(line)) {
+      break;
     }
 
-    MDBlock *new_block = new_mdblock(line, "ul", UNORDERED_LIST, BLOCK, 1);
+    if (new_block != NULL) {
+      mdblock_content_update(new_block, line, "%s%s\n");
+    } else if (is_unordered_list_syntax(line)) {
+      new_block = new_mdblock(line, "ul", UNORDERED_LIST, BLOCK, 1);
+    } else {
+      break;
+    }
 
-    return new_block;
+    // TODO: remove peek_reader_advance from main and advanced in parser
+    if (safe_unordered_list_content(reader, 1)) {
+      peek_reader_advance(reader);
+    } else {
+      break;
+    }
   }
 
-  return NULL;
+  return new_block;
 }
 
 MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
                           PeekReader *reader) {
-  char *line = peek_reader_current(reader);
-  printf("list item parsing: %s\n", line);
-  printf("parent block: %d\n", prnt_block->block);
+  MDBlock *new_block = NULL;
+  while (true) {
+    char *line = peek_reader_current(reader);
+    char *next_line = peek_reader_peek(reader, 1);
+    // printf("list item parsing: %s\n", line);
+    // printf("parent block: %d\n", prnt_block->block);
 
-  if (is_empty_or_whitespace(line) || prnt_block == NULL) {
-    return NULL;
-  }
+    if (is_empty_or_whitespace(line) || prnt_block == NULL) {
+      return NULL;
+    }
 
-  int offset = 0;
-  switch (prnt_block->block) {
-  case ORDERED_LIST:
-    offset = is_ordered_list_syntax(line, 0);
-    break;
-  case UNORDERED_LIST:
-    offset = is_unordered_list_syntax(line);
-    break;
-  default:
-    offset = 0;
-  }
+    int offset = 0;
+    switch (prnt_block->block) {
+    case ORDERED_LIST:
+      offset = is_ordered_list_syntax(line, 0);
+      break;
+    case UNORDERED_LIST:
+      offset = is_unordered_list_syntax(line);
+      break;
+    default:
+      offset = 0;
+      if (new_block == NULL) {
+        return NULL;
+      }
+    }
 
-  if (!offset) {
-    if (prev_block != NULL && prev_block->block == LIST_ITEM) {
+    // printf("list item offset: %d\n", offset);
+    if (!offset && new_block != NULL) {
       if (is_indented_line(INDENT_SIZE, line)) {
         char *line_ptr = line + INDENT_SIZE;
-        mdblock_content_update(prev_block, line_ptr, "%s\n%s");
+        mdblock_content_update(new_block, line_ptr, "%s\n%s");
       } else {
-        mdblock_content_update(prev_block, line, "%s %s");
+        mdblock_content_update(new_block, line, "%s %s");
       }
-      return prev_block;
+    } else if (offset) {
+      char *line_ptr = line + offset;
+      // printf("new list item block\n");
+      new_block = new_mdblock(line_ptr, "li", LIST_ITEM, BLOCK, 0);
     }
-    return NULL;
-  }
 
-  char *line_ptr = line + offset;
-  MDBlock *new_block = new_mdblock(line_ptr, "li", LIST_ITEM, BLOCK, 0);
+    // TODO: remove peek_reader_advance from main and advanced in parser
+    if (safe_paragraph_content(reader, 1) ||
+        is_indented_line(INDENT_SIZE, next_line)) {
+      peek_reader_advance(reader);
+    } else {
+      break;
+    }
+  }
 
   return new_block;
 }
@@ -427,10 +441,13 @@ MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
   return block;
 }
 
-bool is_header_block(MDBlock block) {
+int is_header_block(MDBlock block) {
   return 1 <= block.block && block.block <= 6;
 }
 
+// is_heading_syntax checks if the line starts with a heading syntax
+// Returns the heading level (1-6) if it is a heading syntax, otherwise
+// returns 0.
 int is_heading_syntax(char **line) {
   if (is_empty_or_whitespace(*line)) {
     return 0;
@@ -457,6 +474,9 @@ int is_heading_syntax(char **line) {
   return 0; // Not a header syntax
 }
 
+// is_heading_alternate_syntax checks if the line starts with a heading
+// alternate syntax Returns 1 or 2 for matching alternate syntax h1 or h2
+// respectively, otherwise returns 0.
 int is_heading_alternate_syntax(PeekReader *reader) {
   char *line = peek_reader_current(reader);
   if (is_empty_or_whitespace(line)) {
@@ -478,19 +498,19 @@ int is_heading_alternate_syntax(PeekReader *reader) {
   return 0;
 }
 
-int is_blockquote_syntax(char *str) {
+bool is_blockquote_syntax(char *str) {
   if (str == NULL || *str != '>') {
-    return 0;
+    return false;
   }
 
   while (*str == '>') {
     str++;
   }
   if (!isspace((unsigned char)*str) && *str != '\0') {
-    return 0;
+    return false;
   }
 
-  return 1;
+  return true;
 }
 
 // Returned int is the number of characters in the prefix of the list item
@@ -528,7 +548,8 @@ int is_ordered_list_syntax(char *str, int first_item) {
   return prefix_count;
 }
 
-// Returned int is the number of characters in the prefix of the list item
+// Returned int which is the number of characters in the prefix of the list
+// item
 int is_unordered_list_syntax(char *str) {
   if (str == NULL || strlen(str) < 2) {
     return 0;
@@ -558,39 +579,61 @@ int is_indented_line(int count, char *str) {
   return count;
 }
 
-int is_indented_tab(char *str) {
+bool is_indented_tab(char *str) {
   if (str == NULL || strlen(str) < 1) {
-    return 0;
+    return false;
   }
 
   if (*str == '\t') {
-    return 1;
+    return true;
   }
-  return 0;
+  return false;
 }
 
 /* Returns 1 if the string is empty or only whitespace, otherwise returns 0 */
 bool is_empty_or_whitespace(const char *str) {
   // Optional: Handle NULL pointers as empty
   if (str == NULL) {
-    return 1;
+    return true;
   }
 
   // Iterate through each character in the string.
   while (*str) {
     if (!isspace((unsigned char)*str)) {
       // Found a non-whitespace character.
-      return 0;
+      return false;
     }
     str++;
   }
   // The string is either empty or only contained whitespace.
-  return 1;
+  return true;
 }
 
-bool safe_paragraph_content(char *str) {
-  return !is_empty_or_whitespace(str) && !is_indented_line(INDENT_SIZE, str) &&
-         !is_indented_tab(str) && is_blockquote_syntax(str) == 0;
+bool safe_paragraph_content(PeekReader *reader, int peek) {
+  char *line = peek_reader_peek(reader, peek);
+
+  return !is_empty_or_whitespace(line) &&
+         !is_indented_line(INDENT_SIZE, line) && !is_indented_tab(line) &&
+         !is_blockquote_syntax(line) && !is_heading_syntax(&line) &&
+         !is_heading_alternate_syntax(reader) &&
+         !is_ordered_list_syntax(line, 0) && !is_unordered_list_syntax(line);
+}
+
+bool safe_ordered_list_content(PeekReader *reader, int peek) {
+  char *line = peek_reader_peek(reader, peek);
+  printf("safe ordered list content: %s\n", line);
+
+  return is_ordered_list_syntax(line, 0) ||
+         is_indented_line(INDENT_SIZE, line) ||
+         safe_paragraph_content(reader, peek);
+}
+
+bool safe_unordered_list_content(PeekReader *reader, int peek) {
+  char *line = peek_reader_peek(reader, peek);
+
+  return is_unordered_list_syntax(line) ||
+         is_indented_line(INDENT_SIZE, line) ||
+         safe_paragraph_content(reader, peek);
 }
 
 void mdblock_content_update(MDBlock *block, char *content, char *formatter) {

@@ -20,9 +20,6 @@ int main(int argc, char *argv[]) {
   }
 
   do {
-    // char *line = peek_reader_current(reader);
-    // printf("line: %s\n", line);
-
     new_block = block_parsing(NULL, tail_block, reader);
 
     if (new_block != NULL) {

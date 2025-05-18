@@ -66,4 +66,5 @@ void traverse_block(MDBlock *block) {
   traverse_block(block->child);
   // printf("traveling to next block\n");
   traverse_block(block->next);
+  // printf("traverse block return\n");
 }

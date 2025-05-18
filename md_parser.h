@@ -68,16 +68,18 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *
 MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock* child_block_parsing(MDBlock *block);
 
-bool is_header_block(MDBlock block);
-bool is_empty_or_whitespace(const char *str); 
-int is_indented_line(int count, char *str);
-int is_indented_tab(char *str);
+int is_header_block(MDBlock block);
 int is_heading_syntax(char **str);
 int is_heading_alternate_syntax(PeekReader *reader);
 int is_ordered_list_syntax(char *str, int first_item); 
 int is_unordered_list_syntax(char *cp);
-int is_blockquote_syntax(char *str);
-bool safe_paragraph_content(char *str);
+int is_indented_line(int count, char *str);
+bool is_empty_or_whitespace(const char *str); 
+bool is_indented_tab(char *str);
+bool is_blockquote_syntax(char *str);
+bool safe_paragraph_content(PeekReader *reader, int peek);
+bool safe_ordered_list_content(PeekReader *reader, int peek);
+bool safe_unordered_list_content(PeekReader *reader, int peek);
 
 void child_parsing_exec(MDBlock *block);
 void mdblock_content_update(MDBlock *block, char *content, char *formatter);
