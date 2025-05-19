@@ -316,35 +316,39 @@ MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
 
 MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block,
                           PeekReader *reader) {
-  char *line = peek_reader_current(reader);
-  if (is_empty_or_whitespace(line)) {
-    return NULL;
+  MDBlock *new_block = NULL;
+  while (true) {
+    char *line = peek_reader_current(reader);
+    char *next_line = peek_reader_peek(reader, 1);
+
+    if (is_empty_or_whitespace(line)) {
+      break;
+    }
+
+    if (is_indented_line(INDENT_SIZE, line)) {
+      line += INDENT_SIZE;
+    } else if (is_indented_tab(line)) {
+      line++;
+    } else {
+      break;
+    }
+
+    if (new_block != NULL) {
+      mdblock_content_update(new_block, line, "%s\n%s");
+    } else {
+      new_block = new_mdblock(line, "pre", CODEBLOCK, BLOCK, 0);
+    }
+
+    // TODO: remove peek_reader_advance from main and advanced in parser
+    if (is_indented_line(INDENT_SIZE, next_line) ||
+        is_indented_tab(next_line)) {
+      peek_reader_advance(reader);
+    } else {
+      break;
+    }
   }
 
-  char *line_ptr = line;
-  if (is_indented_line(INDENT_SIZE, line)) {
-    printf("indented line\n");
-    line_ptr += INDENT_SIZE;
-  } else if (is_indented_tab(line)) {
-    printf("indented tab\n");
-    line_ptr++;
-  } else {
-    return NULL;
-  }
-
-  if (curr_block != NULL && curr_block->block == CODEBLOCK) {
-    printf("code block content update\n");
-    mdblock_content_update(curr_block, line_ptr, "%s\n%s");
-    return curr_block;
-  }
-
-  if (curr_block == NULL || curr_block->block != CODEBLOCK) {
-    printf("new code block\n");
-    MDBlock *new_block = new_mdblock(line_ptr, "pre", CODEBLOCK, BLOCK, 0);
-    return new_block;
-  }
-
-  return NULL;
+  return new_block;
 }
 
 MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,
