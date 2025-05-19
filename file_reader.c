@@ -207,7 +207,7 @@ char *peek_reader_current(PeekReader *reader) {
 }
 
 char *peek_reader_peek(PeekReader *reader, int i) {
-  if (i <= 0 || i >= reader->total) {
+  if (i < 0 || i >= reader->total) {
     return NULL;
   }
 

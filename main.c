@@ -35,8 +35,7 @@ int main(int argc, char *argv[]) {
         tail_block = new_block;
       }
     }
-
-  } while (peek_reader_advance(reader));
+  } while (reader->count > 0);
   fclose(md_file);
 
   child_parsing_exec(tail_block);

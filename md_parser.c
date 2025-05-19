@@ -104,7 +104,7 @@ MDBlock *child_block_parsing(MDBlock *prnt_block) {
         tail_block = new_block;
       }
     }
-  } while (peek_reader_advance(reader));
+  } while (reader->count > 0);
 
   child_parsing_exec(tail_block);
 
@@ -134,6 +134,7 @@ MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
   MDBlock *new_block = new_mdblock(line_ptr, tag, level, BLOCK, 0);
 
+  peek_reader_advance(reader);
   return new_block;
 }
 
@@ -153,12 +154,9 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
       new_block = new_mdblock(line, "p", PARAGRAPH, BLOCK, 0);
     }
 
-    // TODO: remove peek_reader_advance from main and advanced in parser
-    if (!safe_paragraph_content(reader, 1)) {
-      printf("not safe paragraph content: %s\n", next_line);
+    peek_reader_advance(reader);
+    if (!safe_paragraph_content(reader, 0)) {
       break;
-    } else {
-      peek_reader_advance(reader);
     }
   }
 
@@ -188,11 +186,9 @@ MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block,
       mdblock_content_update(new_block, line, "%s%s\n");
     }
 
-    // TODO: remove peek_reader_advance from main and advanced in parser
+    peek_reader_advance(reader);
     if (!is_blockquote_syntax(next_line)) {
       break;
-    } else {
-      peek_reader_advance(reader);
     }
   }
   return new_block;
@@ -217,12 +213,8 @@ MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
       break;
     }
 
-    // TODO: remove peek_reader_advance from main and advanced in parser
-    if (safe_ordered_list_content(reader, 1)) {
-      printf("ordered list advance\n");
-      peek_reader_advance(reader);
-    } else {
-      printf("ordered list not advance\n");
+    peek_reader_advance(reader);
+    if (!safe_ordered_list_content(reader, 0)) {
       break;
     }
   }
@@ -249,10 +241,8 @@ MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
       break;
     }
 
-    // TODO: remove peek_reader_advance from main and advanced in parser
-    if (safe_unordered_list_content(reader, 1)) {
-      peek_reader_advance(reader);
-    } else {
+    peek_reader_advance(reader);
+    if (!safe_unordered_list_content(reader, 0)) {
       break;
     }
   }
@@ -302,11 +292,9 @@ MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
       new_block = new_mdblock(line_ptr, "li", LIST_ITEM, BLOCK, 0);
     }
 
-    // TODO: remove peek_reader_advance from main and advanced in parser
-    if (safe_paragraph_content(reader, 1) ||
-        is_indented_line(INDENT_SIZE, next_line)) {
-      peek_reader_advance(reader);
-    } else {
+    peek_reader_advance(reader);
+    if (!safe_paragraph_content(reader, 0) &&
+        !is_indented_line(INDENT_SIZE, next_line)) {
       break;
     }
   }
@@ -339,11 +327,9 @@ MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block,
       new_block = new_mdblock(line, "pre", CODEBLOCK, BLOCK, 0);
     }
 
-    // TODO: remove peek_reader_advance from main and advanced in parser
-    if (is_indented_line(INDENT_SIZE, next_line) ||
-        is_indented_tab(next_line)) {
-      peek_reader_advance(reader);
-    } else {
+    peek_reader_advance(reader);
+    if (!is_indented_line(INDENT_SIZE, next_line) &&
+        !is_indented_tab(next_line)) {
       break;
     }
   }
@@ -368,6 +354,7 @@ MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,
       MDBlock *new_block =
           new_mdblock(NULL, "hr", HORIZONTAL_LINE, SELF_CLOSING, 0);
       free(trimmed_line);
+      peek_reader_advance(reader);
       return new_block;
     }
   }
@@ -389,6 +376,7 @@ MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
   MDBlock *new_block = new_mdblock(line, "", PLAIN, NONE, 0);
 
+  peek_reader_advance(reader);
   return new_block;
 }
 
@@ -403,6 +391,7 @@ MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block,
   printf("new section break\n");
   MDBlock *new_block = new_mdblock(NULL, NULL, SECTION_BREAK, INLINE, 0);
 
+  peek_reader_advance(reader);
   return new_block;
 }
 
