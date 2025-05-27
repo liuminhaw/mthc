@@ -403,9 +403,14 @@ MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
     return NULL;
   }
 
+  char *parsed_line = line_break_parser(content);
+  if (parsed_line == NULL) {
+    parsed_line = content;
+  }
+
   char *b_content = NULL;
-  if (content != NULL) {
-    size_t len = strlen(content);
+  if (parsed_line != NULL) {
+    size_t len = strlen(parsed_line);
     if (content_newline) {
       len += 2; // +1 for '\n' and +1 for '\0'
     } else {
@@ -418,9 +423,9 @@ MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
       return NULL;
     }
     if (content_newline) {
-      sprintf(b_content, "%s\n", content);
+      sprintf(b_content, "%s\n", parsed_line);
     } else {
-      strcpy(b_content, content);
+      strcpy(b_content, parsed_line);
     }
   }
 
@@ -432,6 +437,41 @@ MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
   block->next = NULL;
 
   return block;
+}
+
+char *line_break_parser(const char *line) {
+  if (line == NULL) {
+    return NULL;
+  }
+
+  const char *substitute = "<br>";
+  size_t line_len = strlen(line);
+  size_t ws_count = 0;
+
+  for (size_t i = line_len - 1; i >= 0; i--) {
+    if (isspace((unsigned char)line[i])) {
+      ws_count++;
+    } else {
+      break;
+    }
+  }
+
+  // printf("line length: %zu, ws count: %zu\n", line_len, ws_count);
+  if (ws_count < 2) {
+    return NULL;
+  }
+
+  size_t new_len = line_len - ws_count + strlen(substitute) + 1;
+  char *new_line = malloc(new_len);
+  if (!new_line) {
+    return NULL;
+  }
+
+  strncpy(new_line, line, line_len - ws_count);
+  new_line[line_len - ws_count] = '\0'; // Null-terminate the string
+  strcat(new_line, substitute);         // Append the line break substitute
+
+  return new_line;
 }
 
 int is_header_block(MDBlock block) {
@@ -630,6 +670,12 @@ bool safe_unordered_list_content(PeekReader *reader, int peek) {
 }
 
 void mdblock_content_update(MDBlock *block, char *content, char *formatter) {
+  char *parsed_line = line_break_parser(content);
+  if (parsed_line != NULL) {
+    free(block->content);
+    block->content = parsed_line;
+  }
+
   size_t len = strlen(block->content) + strlen(content) + 2;
   char *paragraph = malloc(len);
   if (!paragraph) {

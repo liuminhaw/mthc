@@ -68,6 +68,8 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *
 MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock* child_block_parsing(MDBlock *block);
 
+char *line_break_parser(const char *line);
+
 int is_header_block(MDBlock block);
 int is_heading_syntax(char **str);
 int is_heading_alternate_syntax(PeekReader *reader);
