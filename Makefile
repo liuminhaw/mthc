@@ -19,5 +19,5 @@ mthc: main.o md_parser.o file_reader.o debug.o
 SHELL := /bin/bash
 
 check:
-	@echo "Running project check..."
-	@./scripts/check.sh
+	@echo "Running project check with ARGS='$(ARGS)'..."
+	@./scripts/check.sh $(ARGS)

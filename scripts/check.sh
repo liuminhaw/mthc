@@ -101,6 +101,10 @@ print_result() {
 }
 
 main() {
+    if [[ ${#} -eq 1 ]]; then
+        echo "Calling with argument: ${1}"
+    fi
+
     echo "Compile mthc program..."
     if ! make mthc; then
         echo "${_RED}Failed to compile mthc program.${_RESET}"
@@ -108,9 +112,19 @@ main() {
     fi
     echo ""
 
-    local _files=("${_TEST_DIR}"/*.md)
+    local _files=()
+    if [[ ${#} -eq 1 ]]; then
+        _files=("${_TEST_DIR}"/*"${1}".md)
+    else
+        _files=("${_TEST_DIR}"/*.md)
+    fi
+
     local _file
     for _file in "${_files[@]}"; do
+        if [[ ! -f "${_file}" ]]; then
+            echo "${_RED}File ${_file} does not exist.${_RESET}"
+            continue
+        fi
         run_test "${_file}"
     done
 
