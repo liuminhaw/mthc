@@ -22,6 +22,7 @@ A simple paragraph
 
 paragraph
 > Should be blockquote
+> with **bold** and _italic_ text
 
 > Ending quote
 > bye

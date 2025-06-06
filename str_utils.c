@@ -86,6 +86,9 @@ char *str_copy(const char *str) {
   return copy;
 }
 
+// fullstr_sub_tagpair recursively substitutes tag pairs in the input string.
+// If there is nothing substituted, it returns the original string.
+// Otherwise, a new string is returned with the substitutions made.
 char *fullstr_sub_tagpair(char *str) {
   char *src_str = str;
   int start_idx = 0;
@@ -206,6 +209,8 @@ TagPair *find_tag_pair(char *str, int start_idx) {
           end_ptr = strstr(start_ptr + 2, "**");
           if (end_ptr == NULL) {
             continue;
+          } else if (end_ptr + 2 != NULL && *(end_ptr + 2) == '*') {
+            end_ptr++;
           }
           TagPair *pair =
               new_tag_pair(str, "**", "strong", i, end_ptr + 2 - str);
@@ -232,6 +237,8 @@ TagPair *find_tag_pair(char *str, int start_idx) {
           end_ptr = strstr(start_ptr + 2, "__");
           if (end_ptr == NULL) {
             continue;
+          } else if (end_ptr + 2 != NULL && *(end_ptr + 2) == '_') {
+            end_ptr++;
           }
           TagPair *pair =
               new_tag_pair(str, "__", "strong", i, end_ptr + 2 - str);
@@ -261,8 +268,9 @@ TagPair *find_tag_pair(char *str, int start_idx) {
 
 #ifdef TEST_STR_UTILS
 int main() {
-  char *test_str = "This is a *test* string with **bold** and **_italic_** "
+  char *test_str = "This is a *test* string with **bold** and ***italic*** "
                    "text, snake_case_text.";
+  // char *test_str = "這是一個 *測試* 字串，包含 **粗體** 和 _斜體_ 文字。";
 
   char *result = fullstr_sub_tagpair(test_str);
   if (result == NULL) {

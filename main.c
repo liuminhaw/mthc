@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
       printf("block: %d, content: %s\n", new_block->block, new_block->content);
 
       child_parsing_exec(tail_block);
+      inline_parsing(tail_block);
 
       if (head_block == NULL) {
         head_block = new_block;
@@ -39,6 +40,7 @@ int main(int argc, char *argv[]) {
   fclose(md_file);
 
   child_parsing_exec(tail_block);
+  inline_parsing(tail_block);
 
   // Traverse block list
   printf("\n=== Traverse block list ===\n");

@@ -7,6 +7,7 @@
 
 #include "file_reader.h"
 #include "md_parser.h"
+#include "str_utils.h"
 
 static const int INDENT_SIZE = 4;
 
@@ -107,8 +108,28 @@ MDBlock *child_block_parsing(MDBlock *prnt_block) {
   } while (reader->count > 0);
 
   child_parsing_exec(tail_block);
+  inline_parsing(tail_block);
 
   return head_block;
+}
+
+void inline_parsing(MDBlock *block) {
+  if (block == NULL || block->content == NULL) {
+    return;
+  }
+
+  char *content = block->content;
+  printf("inline parsing content: %s\n", content);
+  char *parsed_content = emphasis_parser(content);
+  printf("inline parsed content: %s\n", parsed_content);
+  if (parsed_content != NULL && parsed_content != content) {
+    free(content);
+    block->content = parsed_content;
+    printf("replace content\n");
+  }
+  printf("block content after inline parsing: %s\n", block->content);
+
+  return;
 }
 
 MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
@@ -472,6 +493,15 @@ char *line_break_parser(const char *line) {
   strcat(new_line, substitute);         // Append the line break substitute
 
   return new_line;
+}
+
+char *emphasis_parser(char *str) {
+  if (str == NULL) {
+    return NULL;
+  }
+
+  char *result = fullstr_sub_tagpair(str);
+  return result;
 }
 
 int is_header_block(MDBlock block) {

@@ -28,7 +28,7 @@ another fake new line
         func codeblock() {
             return true
         }
-1. item
+1. item with ***bold and italic***
 
 13. Should not be a list
 
