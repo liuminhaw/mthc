@@ -16,7 +16,7 @@ main.o: main.c md_parser.h file_reader.h str_utils.h
 	$(CC) -c main.c
 
 mthc: main.o md_parser.o file_reader.o debug.o str_utils.o
-	$(CC) -o mthc main.o md_parser.o file_reader.o debug.o str_utils.o
+	$(CC) -o mthc main.o md_parser.o file_reader.o debug.o str_utils.o -lunistring
 
 .PHONY: check clean
 SHELL := /bin/bash
@@ -33,7 +33,7 @@ clean:
 .PHONY: str_utils
 
 str_utils:
-	$(CC) -DTEST_STR_UTILS -o str_utils str_utils.c
+	$(CC) -DTEST_STR_UTILS -o str_utils str_utils.c -lunistring
 
 
 

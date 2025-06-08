@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unictype.h>
+#include <unistr.h>
+// #include <unitypes.h>
 
 #include "str_utils.h"
 
@@ -91,10 +94,10 @@ char *str_copy(const char *str) {
 // Otherwise, a new string is returned with the substitutions made.
 char *fullstr_sub_tagpair(char *str) {
   char *src_str = str;
-  int start_idx = 0;
+  uint8_t *start_ptr = (uint8_t *)src_str; // Pointer to the start of the string
 
   while (true) {
-    TagPair *pair = find_tag_pair(src_str, start_idx);
+    TagPair *pair = find_tag_pair(src_str, start_ptr);
     // if (pair != NULL) {
     //   printf("Found tag pair string: %s\n", pair->str);
     //   printf("Found tag pair syntax: %s\n", pair->syntax);
@@ -128,10 +131,9 @@ char *fullstr_sub_tagpair(char *str) {
     free(child_str);
 
     char *tmp = str_sub_tagpair(pair);
-    start_idx = pair->end - pair->str;
-    free_tag_pair(pair);
-
     src_str = tmp;
+    start_ptr = (uint8_t *)(src_str + (pair->end - pair->str));
+    free_tag_pair(pair);
   }
 }
 
@@ -145,9 +147,6 @@ char *str_sub_tagpair(TagPair *pair) {
   size_t syntax_len = strlen(pair->syntax);
   size_t prefix_len = strlen(pair->tag) + 2; // +2 for < and >
   size_t suffix_len = strlen(pair->tag) + 3; // +3 for </ and >
-  // size_t replacement_len =
-  //     prefix_len + suffix_len + substr_len - (2 * syntax_len);
-  // size_t total_len = strlen(pair->str) - substr_len + replacement_len;
   size_t replacement_len = substr_len - (2 * syntax_len);
   size_t total_len = strlen(pair->str) - substr_len + prefix_len + suffix_len +
                      replacement_len;
@@ -192,83 +191,138 @@ char *str_sub_tagpair(TagPair *pair) {
   return result;
 }
 
-TagPair *find_tag_pair(char *str, int start_idx) {
-  const char *find_ptr = str;
-  const int str_len = strlen(str);
+TagPair *find_tag_pair(char *str, uint8_t *start_ptr) {
+  const uint8_t *traverse_ptr = start_ptr;
+  const size_t str_len = strlen(str);
 
-  for (int i = start_idx; i < str_len; i++) {
-    if (str[i] == '*' || str[i] == '_') {
-      // Found a potential emphasis marker
-      char *start_ptr = &str[i];
-      char *end_ptr = NULL;
+  ucs4_t ch;
+  while (traverse_ptr != NULL) {
+    // printf("traverse_ptr: %s\n", traverse_ptr);
+    const uint8_t *next = u8_next(&ch, traverse_ptr);
+    if (!next) {
+      break;
+    }
 
-      switch (str[i]) {
-      case '*':
-        if (i + 1 < str_len && str[i + 1] == '*') {
-          // Found bold syntax
-          end_ptr = strstr(start_ptr + 2, "**");
-          if (end_ptr == NULL) {
-            continue;
-          } else if (end_ptr + 2 != NULL && *(end_ptr + 2) == '*') {
-            end_ptr++;
-          }
-          TagPair *pair =
-              new_tag_pair(str, "**", "strong", i, end_ptr + 2 - str);
-          if (pair == NULL) {
-            return NULL;
-          }
-          return pair;
-        } else {
-          // Found italic syntax
-          end_ptr = strstr(start_ptr + 1, "*");
-          if (end_ptr == NULL) {
-            continue;
-          }
-          TagPair *pair = new_tag_pair(str, "*", "em", i, end_ptr + 1 - str);
-          if (pair == NULL) {
-            return NULL;
-          }
-          return pair;
+    ucs4_t peek_ch;
+    switch (ch) {
+    case '*':
+      if (str_peek(next, 0, &peek_ch) && peek_ch == '*') {
+        // Found bold syntax
+        const uint8_t *peek_ptr = str_move(next, 1);
+        const uint8_t *end_ptr = u8_strstr(peek_ptr, (const uint8_t *)"**");
+        if (end_ptr == NULL) {
+          traverse_ptr = next;
+          continue; // No closing tag found, continue searching
+        } else if (str_peek(end_ptr, 2, &peek_ch) && peek_ch == '*') {
+          end_ptr = str_move(end_ptr, 1); // Move past the second '*'
         }
-        break;
-      case '_':
-        if (i + 1 < str_len && str[i + 1] == '_') {
-          // Found bold syntax
-          end_ptr = strstr(start_ptr + 2, "__");
-          if (end_ptr == NULL) {
-            continue;
-          } else if (end_ptr + 2 != NULL && *(end_ptr + 2) == '_') {
-            end_ptr++;
-          }
-          TagPair *pair =
-              new_tag_pair(str, "__", "strong", i, end_ptr + 2 - str);
-          if (pair == NULL) {
-            return NULL;
-          }
-          return pair;
-        } else {
-          // Found italic syntax
-          end_ptr = strstr(start_ptr + 1, "_");
-          if (end_ptr == NULL) {
-            continue;
-          }
-          TagPair *pair = new_tag_pair(str, "_", "em", i, end_ptr + 1 - str);
-          if (pair == NULL) {
-            return NULL;
-          }
-          return pair;
+        TagPair *pair = new_tag_pair(str, "**", "strong",
+                                     traverse_ptr - (const uint8_t *)str,
+                                     end_ptr + 2 - (const uint8_t *)str);
+        if (pair == NULL) {
+          return NULL;
         }
-        break;
+        return pair;
+      } else {
+        // Found italic syntax
+        const uint8_t *end_ptr = u8_strstr(next, (const uint8_t *)"*");
+        if (end_ptr == NULL) {
+          traverse_ptr = next;
+          continue; // No closing tag found, continue searching
+        }
+        TagPair *pair =
+            new_tag_pair(str, "*", "em", traverse_ptr - (const uint8_t *)str,
+                         end_ptr + 1 - (const uint8_t *)str);
+        if (pair == NULL) {
+          return NULL;
+        }
+        return pair;
       }
+      break;
+    case '_':
+      if (str_peek(next, 0, &peek_ch) && peek_ch == '_') {
+        // Found bold syntax
+        const uint8_t *peek_ptr = str_move(next, 1);
+        const uint8_t *end_ptr = u8_strstr(peek_ptr, (const uint8_t *)"__");
+        if (end_ptr == NULL) {
+          traverse_ptr = next;
+          continue; // No closing tag found, continue searching
+        } else if (str_peek(end_ptr, 2, &peek_ch) && peek_ch == '_') {
+          end_ptr = str_move(end_ptr, 1); // Move past the second '*'
+        }
+        TagPair *pair = new_tag_pair(str, "__", "strong",
+                                     traverse_ptr - (const uint8_t *)str,
+                                     end_ptr + 2 - (const uint8_t *)str);
+        if (pair == NULL) {
+          return NULL;
+        }
+        return pair;
+      } else {
+        // Found italic syntax
+        const uint8_t *end_ptr = u8_strstr(next, (const uint8_t *)"_");
+        if (end_ptr == NULL) {
+          traverse_ptr = next;
+          continue; // No closing tag found, continue searching
+        }
+        TagPair *pair =
+            new_tag_pair(str, "_", "em", traverse_ptr - (const uint8_t *)str,
+                         end_ptr + 1 - (const uint8_t *)str);
+        if (pair == NULL) {
+          return NULL;
+        }
+        return pair;
+      }
+      break;
+    default:
+      traverse_ptr = next; // Move to the next character
     }
   }
-
   return NULL;
 }
 
+bool str_peek(const uint8_t *str, int offset, ucs4_t *result) {
+  // printf("str_peek: %s, offset: %d\n", str, offset);
+  if (str == NULL || offset < 0) {
+    return false;
+  }
+
+  const uint8_t *ptr = str;
+  // ucs4_t ch;
+  for (int i = 0; i <= offset; i++) {
+    ptr = u8_next(result, ptr);
+    if (ptr == NULL) {
+      return false; // Reached the end of the string
+    }
+  }
+
+  return true;
+}
+
+const uint8_t *str_move(const uint8_t *str, int offset) {
+  // printf("str_move: %s, offset: %d\n", str, offset);
+  if (str == NULL || offset < 0) {
+    return NULL;
+  }
+
+  const uint8_t *ptr = str;
+  ucs4_t ch;
+  for (int i = 0; i < offset; i++) {
+    ptr = u8_next(&ch, ptr);
+    if (ptr == NULL) {
+      return NULL; // Reached the end of the string
+    }
+  }
+
+  return ptr;
+}
+
+bool is_utf8_word(ucs4_t ch) { return uc_is_alpha(ch) || uc_is_digit(ch); }
+
 #ifdef TEST_STR_UTILS
 int main() {
-  char *test_str = "This is a *test* string with **bold** and ***italic*** "
+  // char *test_str =
+  //     "This is a *test* string with **bold** and ***italic*** text.";
+  char *test_str = "This is a *test* string with **bold** and **_italic_** "
                    "text, snake_case_text.";
   // char *test_str = "這是一個 *測試* 字串，包含 **粗體** 和 _斜體_ 文字。";
 
