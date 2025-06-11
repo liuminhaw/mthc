@@ -17,6 +17,13 @@ Testing **_emphasis_ in emphasis**
 
 In*text*emphasis and in**text**emphasis and in***text***emphasis
 
+### Codeblock
+    
+    **style** in codeblock should not be emphasized
+    _italic_ style also
+    ***bold and italic*** style also should not be emphasized
+    _snake_case_ should stay as is
+
 
 
 

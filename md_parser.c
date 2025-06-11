@@ -118,6 +118,10 @@ void inline_parsing(MDBlock *block) {
     return;
   }
 
+  if (block->block == CODEBLOCK || block->block == SECTION_BREAK) {
+    return;
+  }
+
   char *content = block->content;
   printf("inline parsing content: %s\n", content);
   char *parsed_content = emphasis_parser(content);
