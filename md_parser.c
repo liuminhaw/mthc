@@ -504,7 +504,7 @@ char *emphasis_parser(char *str) {
     return NULL;
   }
 
-  char *result = fullstr_sub_tagpair(str);
+  char *result = fullstr_sub_tagpair(str, PT_NONE);
   return result;
 }
 

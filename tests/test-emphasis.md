@@ -17,12 +17,21 @@ Testing **_emphasis_ in emphasis**
 
 In*text*emphasis and in**text**emphasis and in***text***emphasis
 
+This is inline `code`
+
+Inline **`code with strong text`**
+
+emphasis in `inline *code*` should not be emphasized
+
+``escape `inline` code``
+
 ### Codeblock
     
     **style** in codeblock should not be emphasized
     _italic_ style also
     ***bold and italic*** style also should not be emphasized
     _snake_case_ should stay as is
+    `backticks` should not be emphasized
 
 
 

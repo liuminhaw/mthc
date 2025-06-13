@@ -8,8 +8,24 @@
 
 #include "str_utils.h"
 
-TagPair *new_tag_pair(char *str, char *syntax, char *tag, int start, int end) {
-  if (str == NULL || syntax == NULL || tag == NULL) {
+TagPair *new_tag_pair(PairType type, char *str, char *syntax, int start,
+                      int end) {
+  if (str == NULL || syntax == NULL) {
+    return NULL;
+  }
+
+  char *tag;
+  switch (type) {
+  case PT_STRONG:
+    tag = "strong";
+    break;
+  case PT_EM:
+    tag = "em";
+    break;
+  case PT_CODE:
+    tag = "code";
+    break;
+  default:
     return NULL;
   }
 
@@ -19,6 +35,7 @@ TagPair *new_tag_pair(char *str, char *syntax, char *tag, int start, int end) {
     return NULL;
   }
 
+  pair->type = type;
   pair->str = str_copy(str);
   pair->syntax = syntax;
   pair->tag = tag;
@@ -92,7 +109,7 @@ char *str_copy(const char *str) {
 // fullstr_sub_tagpair recursively substitutes tag pairs in the input string.
 // If there is nothing substituted, it returns the original string.
 // Otherwise, a new string is returned with the substitutions made.
-char *fullstr_sub_tagpair(char *str) {
+char *fullstr_sub_tagpair(char *str, PairType parent_type) {
   StrRecorder *recorder = malloc(sizeof(StrRecorder));
   if (recorder == NULL) {
     perror("malloc failed");
@@ -102,8 +119,19 @@ char *fullstr_sub_tagpair(char *str) {
   recorder->ptr = (uint8_t *)str; // Pointer to the start of the string
 
   while (true) {
-    TagPair *pair = find_tag_pair(recorder->str, recorder->ptr);
+    TagPair *pair = NULL;
+
+    printf("parent type: %d, pt code: %d\n", parent_type, PT_CODE);
+    TagPair *(*fn)(char *str, uint8_t *start_ptr) =
+        pair_finder_fn_exec(recorder->str, parent_type);
+    if (fn == NULL) {
+      char *result = recorder->str;
+      free(recorder);
+      return result;
+    }
+    pair = fn(recorder->str, recorder->ptr);
     // if (pair != NULL) {
+    //   printf("Found tag pair type: %d\n", pair->type);
     //   printf("Found tag pair string: %s\n", pair->str);
     //   printf("Found tag pair syntax: %s\n", pair->syntax);
     //   printf("Found tag pair tag: %s\n", pair->tag);
@@ -133,7 +161,7 @@ char *fullstr_sub_tagpair(char *str) {
             pair->end - pair->start - (2 * strlen(pair->syntax)));
     child_str[child_str_len] = '\0'; // Null-terminate the string
 
-    char *substituted = fullstr_sub_tagpair(child_str);
+    char *substituted = fullstr_sub_tagpair(child_str, pair->type);
     if (substituted != child_str) {
       // Update pair fields with new substituted string
       update_tag_pair_str(pair, substituted);
@@ -203,7 +231,7 @@ void str_sub_tagpair(TagPair *pair, StrRecorder *recorder) {
   return;
 }
 
-TagPair *find_tag_pair(char *str, uint8_t *start_ptr) {
+TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
   const uint8_t *traverse_ptr = start_ptr;
   const size_t str_len = strlen(str);
 
@@ -235,7 +263,7 @@ TagPair *find_tag_pair(char *str, uint8_t *start_ptr) {
           end_ptr = str_move(end_ptr, 1); // Move past the second '*'
         }
         end_ptr = str_move(end_ptr, 2); // Move past the '**'
-        TagPair *pair = new_tag_pair(str, "**", "strong",
+        TagPair *pair = new_tag_pair(PT_STRONG, str, "**",
                                      traverse_ptr - (const uint8_t *)str,
                                      end_ptr - (const uint8_t *)str);
         if (pair == NULL) {
@@ -251,7 +279,7 @@ TagPair *find_tag_pair(char *str, uint8_t *start_ptr) {
         }
         end_ptr = str_move(end_ptr, 1); // Move past the '*'
         TagPair *pair =
-            new_tag_pair(str, "*", "em", traverse_ptr - (const uint8_t *)str,
+            new_tag_pair(PT_EM, str, "*", traverse_ptr - (const uint8_t *)str,
                          end_ptr - (const uint8_t *)str);
         if (pair == NULL) {
           return NULL;
@@ -290,7 +318,7 @@ TagPair *find_tag_pair(char *str, uint8_t *start_ptr) {
         }
 
         end_ptr = str_move(end_ptr, 2); // Move past the '__'
-        TagPair *pair = new_tag_pair(str, "__", "strong",
+        TagPair *pair = new_tag_pair(PT_STRONG, str, "__",
                                      traverse_ptr - (const uint8_t *)str,
                                      end_ptr - (const uint8_t *)str);
         if (pair == NULL) {
@@ -320,7 +348,7 @@ TagPair *find_tag_pair(char *str, uint8_t *start_ptr) {
 
         end_ptr = str_move(end_ptr, 1); // Move past the '_'
         TagPair *pair =
-            new_tag_pair(str, "_", "em", traverse_ptr - (const uint8_t *)str,
+            new_tag_pair(PT_EM, str, "_", traverse_ptr - (const uint8_t *)str,
                          end_ptr - (const uint8_t *)str);
         if (pair == NULL) {
           return NULL;
@@ -333,6 +361,105 @@ TagPair *find_tag_pair(char *str, uint8_t *start_ptr) {
     }
   }
   return NULL;
+}
+
+TagPair *find_code_tag_pair(char *str, uint8_t *start_ptr) {
+  const uint8_t *traverse_ptr = start_ptr;
+  const size_t str_len = strlen(str);
+
+  ucs4_t ch = 0;
+  while (traverse_ptr != NULL) {
+    const uint8_t *next = u8_next(&ch, traverse_ptr);
+    if (!next) {
+      break;
+    }
+
+    ucs4_t peek_ch;
+    if (ch == '`') {
+      if (str_peek(next, 0, &peek_ch) && peek_ch == '`') {
+        // Found escaping backtick syntax
+        const uint8_t *peek_ptr = str_move(next, 1);
+        const uint8_t *end_ptr = u8_strstr(peek_ptr, (const uint8_t *)"``");
+        if (end_ptr == NULL) {
+          traverse_ptr = next;
+          continue;
+        }
+        end_ptr = str_move(end_ptr, 2); // Move past the '``'
+        TagPair *pair = new_tag_pair(PT_CODE, str, "``",
+                                     traverse_ptr - (const uint8_t *)str,
+                                     end_ptr - (const uint8_t *)str);
+        return pair;
+      } else {
+        const uint8_t *end_ptr = u8_strstr(next, (const uint8_t *)"`");
+        if (end_ptr == NULL) {
+          traverse_ptr = next;
+          continue;
+        }
+        end_ptr = str_move(end_ptr, 1); // Move past the '`'
+        TagPair *pair =
+            new_tag_pair(PT_CODE, str, "`", traverse_ptr - (const uint8_t *)str,
+                         end_ptr - (const uint8_t *)str);
+        return pair;
+      }
+    }
+
+    traverse_ptr = next; // Move to the next character
+  }
+  return NULL;
+}
+
+bool run_pair_finder(PairType type, int check_count, PairType check_types[]) {
+  bool flag = true;
+
+  for (int i = 0; i < check_count; i++) {
+    if (check_types[i] == type) {
+      flag = false;
+    }
+  }
+
+  return flag;
+}
+
+TagPair *(*pair_finder_fn_exec(char *str,
+                               PairType parent_type))(char *str,
+                                                      uint8_t *start_ptr) {
+  PairType ap[] = {PT_CODE};
+  if (!run_pair_finder(parent_type, 1, ap)) {
+    return NULL;
+  }
+
+  TagPair *emphasis_pair = find_emphasis_pair(str, (uint8_t *)str);
+  // if (emphasis_pair != NULL) {
+  //   printf("Found tag emphasis_pair type: %d\n", emphasis_pair->type);
+  //   printf("Found tag emphasis_pair string: %s\n", emphasis_pair->str);
+  //   printf("Found tag emphasis_pair syntax: %s\n", emphasis_pair->syntax);
+  //   printf("Found tag emphasis_pair tag: %s\n", emphasis_pair->tag);
+  //   printf("Found tag emphasis_pair start: %s\n", emphasis_pair->start);
+  //   printf("Found tag emphasis_pair end: %s\n", emphasis_pair->end);
+  // }
+  TagPair *code_pair = find_code_tag_pair(str, (uint8_t *)str);
+  // if (code_pair != NULL) {
+  //   printf("Found tag code_pair type: %d\n", code_pair->type);
+  //   printf("Found tag code_pair string: %s\n", code_pair->str);
+  //   printf("Found tag code_pair syntax: %s\n", code_pair->syntax);
+  //   printf("Found tag code_pair tag: %s\n", code_pair->tag);
+  //   printf("Found tag code_pair start: %s\n", code_pair->start);
+  //   printf("Found tag code_pair end: %s\n", code_pair->end);
+  // }
+
+  char *result = NULL;
+  if (emphasis_pair == NULL && code_pair == NULL) {
+    return NULL;
+  } else if (emphasis_pair == NULL) {
+    return find_code_tag_pair;
+  } else if (code_pair == NULL) {
+    return find_emphasis_pair;
+  } else if (emphasis_pair->start - emphasis_pair->str <
+             code_pair->start - code_pair->str) {
+    return find_emphasis_pair;
+  } else {
+    return find_code_tag_pair;
+  }
 }
 
 bool str_peek(const uint8_t *str, int offset, ucs4_t *result) {
@@ -375,18 +502,18 @@ bool is_utf8_word(ucs4_t ch) { return uc_is_alpha(ch) || uc_is_digit(ch); }
 
 #ifdef TEST_STR_UTILS
 int main() {
-  // char *test_str =
-  //     "___simple bold and italic___";
+  char *test_str = "emphasis in `inline *code*` should not be emphasized";
   // char *test_str =
   //     "This is a *test* string with **bold** and **_italic_** "
   //     "text, snake_case_text. ___simple bold and italic___, "
   //     "bold**in**text, __snake_case_bold_text__. "
-  //     "_snake_case_italic_text_, ___snake_case_bold_italic_text___.";
-  char *test_str = "這是一個 *測試* 字串，包含 **粗體** 和 ___斜體___ 文字。"
-                   "試試看 **_粗體斜體_**，以及 __蛇形_粗體__。";
+  //     "_snake_case_italic_text_, ___snake_case_bold_italic_text___. "
+  //     "Try with `code` and ``escape `code` syntax``. ";
+  // char *test_str = "這是一個 *測試* 字串，包含 **粗體** 和 ___斜體___ 文字。"
+  //                  "試試看 **_粗體斜體_**，以及 __蛇形_粗體__。";
   // char *test_str = "這是一個 *測試* 字串，包含 **粗體** 和 _斜體_ 文字。";
 
-  char *result = fullstr_sub_tagpair(test_str);
+  char *result = fullstr_sub_tagpair(test_str, PT_NONE);
   if (result == NULL) {
     printf("Error processing string.\n");
     return 1;
