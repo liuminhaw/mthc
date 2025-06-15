@@ -72,6 +72,7 @@ MDBlock *child_block_parsing(MDBlock *block);
 void inline_parsing(MDBlock *block);
 char *line_break_parser(const char *line);
 char *emphasis_parser(char *str);
+char *link_parser(char *str);
 
 int is_header_block(MDBlock block);
 int is_heading_syntax(char **str);

@@ -1,5 +1,4 @@
 #include <ctype.h>
-// #include <regex.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +6,7 @@
 
 #include "file_reader.h"
 #include "md_parser.h"
+#include "md_regex.h"
 #include "str_utils.h"
 
 static const int INDENT_SIZE = 4;
@@ -123,14 +123,22 @@ void inline_parsing(MDBlock *block) {
   }
 
   char *content = block->content;
-  printf("inline parsing content: %s\n", content);
-  char *parsed_content = emphasis_parser(content);
-  printf("inline parsed content: %s\n", parsed_content);
-  if (parsed_content != NULL && parsed_content != content) {
+  printf("inline origin content: %s\n", content);
+  char *emphasis_content = emphasis_parser(content);
+  printf("inline emphasis content: %s\n", emphasis_content);
+  if (emphasis_content != NULL && emphasis_content != content) {
     free(content);
-    block->content = parsed_content;
+    block->content = emphasis_content;
     printf("replace content\n");
   }
+
+  char *link_content = link_parser(block->content);
+  printf("inline link content: %s\n", link_content);
+  if (link_content != NULL && link_content != block->content) {
+    free(block->content);
+    block->content = link_content;
+  }
+
   printf("block content after inline parsing: %s\n", block->content);
 
   return;
@@ -506,6 +514,72 @@ char *emphasis_parser(char *str) {
 
   char *result = fullstr_sub_tagpair(str, PT_NONE);
   return result;
+}
+
+char *link_parser(char *str) {
+  if (str == NULL) {
+    return NULL;
+  }
+
+  size_t count = 0;
+  MDLinkRegex *links = parse_markdown_links(str, &count);
+
+  if (links == NULL || count == 0) {
+    return str; // No links found, return original string
+  }
+
+  char *dup_str = strdup(str);
+  for (size_t i = 0; i < count; i++) {
+    MDLinkRegex *link = &links[i];
+
+    char *sub_str = NULL;
+    if (link->title) {
+      // Has link title
+      size_t link_len =
+          strlen(link->label) + strlen(link->url) + strlen(link->title) + 24;
+      sub_str = malloc((link_len + 1) * sizeof(char));
+      if (sub_str == NULL) {
+        perror("malloc failed");
+        free_md_links(links, count);
+        return dup_str; // Return original string on error
+      }
+      sprintf(sub_str, "<a href=\"%s\" title=\"%s\">%s</a>", link->url,
+              link->title, link->label);
+    } else {
+      // No link title
+      size_t link_len = strlen(link->label) + strlen(link->url) + 15;
+      sub_str = malloc((link_len + 1) * sizeof(char));
+      if (sub_str == NULL) {
+        perror("malloc failed");
+        free_md_links(links, count);
+        return dup_str; // Return original string on error
+      }
+      sprintf(sub_str, "<a href=\"%s\">%s</a>", link->url, link->label);
+    }
+
+    char *tmp_str;
+    size_t tmp_len =
+        strlen(dup_str) + strlen(sub_str) - (link->end - link->start);
+    tmp_str = malloc((tmp_len + 1) * sizeof(char));
+    if (tmp_str == NULL) {
+      perror("malloc failed");
+      free(sub_str);
+      free_md_links(links, count);
+      return str; // Return original string on error
+    }
+
+    // Copy the part before the link
+    memcpy(tmp_str, dup_str, link->start);
+    memcpy(tmp_str + link->start, sub_str, strlen(sub_str));
+    memcpy(tmp_str + link->start + strlen(sub_str), dup_str + link->end,
+           strlen(dup_str) - link->end);
+    tmp_str[tmp_len] = '\0'; // Null-terminate the string
+
+    free(dup_str);
+    dup_str = tmp_str; // Update str to the new string with link replaced
+  }
+
+  return dup_str;
 }
 
 int is_header_block(MDBlock block) {

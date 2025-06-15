@@ -12,11 +12,14 @@ md_parser.o: md_parser.c md_parser.h
 str_utils.o: str_utils.c str_utils.h
 	$(CC) -c str_utils.c
 
-main.o: main.c md_parser.h file_reader.h str_utils.h
+md_regex.o: md_regex.c md_regex.h
+	$(CC) -c md_regex.c -Wall
+
+main.o: main.c md_parser.h file_reader.h str_utils.h md_regex.h
 	$(CC) -c main.c
 
-mthc: main.o md_parser.o file_reader.o debug.o str_utils.o
-	$(CC) -o mthc main.o md_parser.o file_reader.o debug.o str_utils.o -lunistring
+mthc: main.o md_parser.o file_reader.o debug.o str_utils.o md_regex.o
+	$(CC) -o mthc main.o md_parser.o file_reader.o debug.o str_utils.o md_regex.o -lunistring -lpcre2-8
 
 .PHONY: check clean
 SHELL := /bin/bash
@@ -32,8 +35,11 @@ clean:
 
 .PHONY: str_utils
 
-str_utils:
-	$(CC) -DTEST_STR_UTILS -o str_utils str_utils.c -lunistring
+str_utils: str_utils.c str_utils.h
+	$(CC) -DTEST_STR_UTILS -o str_utils_test str_utils.c -lunistring
+
+md_regex: md_regex.c md_regex.h
+	$(CC) -DTEST_MD_REGEX -o md_regex_test md_regex.c -Wall -lpcre2-8
 
 
 
