@@ -3,6 +3,7 @@
 
 #include "debug.h"
 #include "file_reader.h"
+#include "md_regex.h"
 
 void print_html(MDBlock *block);
 
@@ -13,7 +14,16 @@ int main(int argc, char *argv[]) {
 
   FILE *md_file = fopen(argv[1], "r");
 
+  // Read through the file to get all reference links
   PeekReader *reader = new_peek_reader_from_file(md_file, DEFAULT_PEEK_COUNT);
+  if (!reader) {
+    fprintf(stderr, "Failed to create peek reader\n");
+    return 1;
+  }
+  MDLinkReference *link_ref_head = parse_markdown_links_reference(reader);
+
+  rewind(md_file);
+  reader = new_peek_reader_from_file(md_file, DEFAULT_PEEK_COUNT);
   if (!reader) {
     fprintf(stderr, "Failed to create peek reader\n");
     return 1;

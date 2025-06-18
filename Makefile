@@ -38,8 +38,8 @@ clean:
 str_utils: str_utils.c str_utils.h
 	$(CC) -DTEST_STR_UTILS -o str_utils_test str_utils.c -lunistring
 
-md_regex: md_regex.c md_regex.h
-	$(CC) -DTEST_MD_REGEX -o md_regex_test md_regex.c -Wall -lpcre2-8
+md_regex: md_regex.c md_regex.h file_reader.o
+	$(CC) -DTEST_MD_REGEX -o md_regex_test md_regex.c file_reader.o -Wall -lpcre2-8
 
 
 
