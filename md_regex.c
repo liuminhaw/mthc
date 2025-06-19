@@ -10,7 +10,56 @@
 #include "file_reader.h"
 #include "md_regex.h"
 
-MDLinkRegex *parse_markdown_links(const char *str, size_t *result_count) {
+MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str,
+                                  size_t *result_count) {
+  size_t general_link_count = 0;
+  MDLinkRegex *general_links =
+      parse_markdown_general_links(str, &general_link_count);
+
+  size_t tag_link_count = 0;
+  MDLinkRegex *tag_links = parse_markdown_links_tag(head, str, &tag_link_count);
+
+  if (general_links == NULL && tag_links == NULL) {
+    *result_count = 0;
+    printf("parse markdown links: No links found.\n");
+
+    return NULL;
+  } else if (general_links == NULL) {
+    *result_count = tag_link_count;
+    printf("parse markdown links: return general.\n");
+    return tag_links;
+  } else if (tag_links == NULL) {
+    *result_count = general_link_count;
+    printf("parse markdown links: return tags.\n");
+    return general_links;
+  }
+
+  // Combine both arrays
+  size_t total_count = general_link_count + tag_link_count;
+  MDLinkRegex *combined_links = malloc(total_count * sizeof(MDLinkRegex));
+  if (!combined_links) {
+    perror("malloc failed");
+    free_md_links(general_links, general_link_count);
+    free_md_links(tag_links, tag_link_count);
+    *result_count = 0;
+    return NULL;
+  }
+
+  memcpy(combined_links, general_links,
+         general_link_count * sizeof(MDLinkRegex));
+  memcpy(combined_links + general_link_count, tag_links,
+         tag_link_count * sizeof(MDLinkRegex));
+
+  // free_md_links(general_links, general_link_count);
+  // free_md_links(tag_links, tag_link_count);
+
+  *result_count = total_count;
+  printf("parse markdown links: return combined.\n");
+  return combined_links;
+}
+
+MDLinkRegex *parse_markdown_general_links(const char *str,
+                                          size_t *result_count) {
   if (str == NULL) {
     return NULL;
   }
@@ -85,12 +134,15 @@ MDLinkRegex *parse_markdown_links(const char *str, size_t *result_count) {
       title[ov[7] - ov[6]] = '\0';
     }
 
-    arr[count].label = label;
-    arr[count].url = url;
-    arr[count].title = title;
-    arr[count].start = (int)ov[0];
-    arr[count].end = (int)ov[1];
+    arr[count] = *new_md_link(label, url, title, (int)ov[0], (int)ov[1]);
+
     count++;
+
+    free(label);
+    free(url);
+    if (title) {
+      free(title);
+    }
 
     offset = ov[1];
   }
@@ -102,8 +154,94 @@ MDLinkRegex *parse_markdown_links(const char *str, size_t *result_count) {
   return arr;
 }
 
-MDLinkReference *parse_markdown_links_reference(PeekReader *reader) {
-  if (reader == NULL) {
+MDLinkRegex *parse_markdown_links_tag(MDLinkReference *head, const char *str,
+                                      size_t *result_count) {
+  if (str == NULL) {
+    return NULL;
+  }
+
+  PCRE2_SPTR8 subject = (PCRE2_SPTR8)str;
+  PCRE2_SPTR8 pattern = (PCRE2_SPTR8) "(?s)<code>.*?</code>(*SKIP)(*FAIL)|"
+                                      "\\[([^\\]]+)\\]\\ ?\\[([^\\]]+)\\]";
+
+  int errorcode;
+  PCRE2_SIZE erroroffset;
+
+  pcre2_code_8 *re =
+      pcre2_compile_8(pattern, PCRE2_ZERO_TERMINATED, PCRE2_UTF | PCRE2_UCP,
+                      &errorcode, &erroroffset, NULL);
+  if (!re) {
+    PCRE2_UCHAR8 buffer[256];
+    pcre2_get_error_message_8(errorcode, buffer, sizeof(buffer));
+    fprintf(stderr, "PCRE2 compilation failed at offset %zu: %s\n", erroroffset,
+            buffer);
+    return NULL;
+  }
+  /* Prepare match data block */
+  pcre2_match_data_8 *md = pcre2_match_data_create_from_pattern_8(re, NULL);
+  PCRE2_SIZE subject_len = strlen((char *)subject);
+  PCRE2_SIZE offset = 0;
+  int rc;
+
+  // Setup dynamic array for storing MDLinkRegex output
+  size_t capacity = 2;
+  size_t count = 0;
+  MDLinkRegex *arr = malloc(capacity * sizeof(MDLinkRegex));
+  if (!arr) {
+    perror("malloc MDLinkRegex failed");
+    pcre2_match_data_free_8(md);
+    pcre2_code_free_8(re);
+    return NULL;
+  }
+
+  // Loop over matches
+  while ((rc = pcre2_match_8(re, subject, subject_len, offset, 0, md, NULL)) >=
+         0) {
+    // [0]..[1] = full-match start/end, [2]..[3]=group1, [4]..[5]=group2
+    PCRE2_SIZE *ov = pcre2_get_ovector_pointer_8(md);
+
+    // Grow dynamic array
+    if (count == capacity) {
+      capacity *= 2;
+      MDLinkRegex *tmp = realloc(arr, capacity * sizeof(*arr));
+      if (!tmp) {
+        perror("realloc");
+        break;
+      }
+      arr = tmp;
+    }
+
+    // Extract captured info
+    char *label = malloc(ov[3] - ov[2] + 1);
+    char *tag = malloc(ov[5] - ov[4] + 1);
+    memcpy(label, subject + ov[2], ov[3] - ov[2]);
+    memcpy(tag, subject + ov[4], ov[5] - ov[4]);
+    label[ov[3] - ov[2]] = '\0';
+    tag[ov[5] - ov[4]] = '\0';
+
+    MDLinkReference *ref = find_link_reference(head, tag);
+    if (ref != NULL) {
+      arr[count] =
+          *new_md_link(label, ref->url, ref->title, (int)ov[0], (int)ov[1]);
+
+      count++;
+    }
+
+    free(label);
+    free(tag);
+
+    offset = ov[1];
+  }
+
+  pcre2_match_data_free_8(md);
+  pcre2_code_free_8(re);
+
+  *result_count = count;
+  return arr;
+}
+
+MDLinkReference *parse_markdown_links_reference(char *str) {
+  if (str == NULL) {
     return NULL;
   }
 
@@ -140,43 +278,61 @@ MDLinkReference *parse_markdown_links_reference(PeekReader *reader) {
     return NULL;
   }
 
-  MDLinkReference *head = NULL;
+  pcre2_match_data_8 *md = pcre2_match_data_create_from_pattern_8(re, NULL);
+  PCRE2_SIZE str_len = strlen(str);
+  PCRE2_SIZE offset = 0;
+  int rc;
 
+  if ((rc = pcre2_match_8(re, (PCRE2_SPTR8)str, str_len, offset, 0, md, NULL)) <
+      0) {
+    pcre2_match_data_free_8(md);
+    pcre2_code_free_8(re);
+    return NULL; // No match found
+  }
+
+  PCRE2_SIZE *ov = pcre2_get_ovector_pointer_8(md);
+  char *label = malloc(ov[3] - ov[2] + 1);
+  char *url = malloc(ov[5] - ov[4] + 1);
+  memcpy(label, str + ov[2], ov[3] - ov[2]);
+  memcpy(url, str + ov[4], ov[5] - ov[4]);
+  label[ov[3] - ov[2]] = '\0';
+  url[ov[5] - ov[4]] = '\0';
+  str_to_lower(label); // Normalize label to lowercase
+
+  char *title = NULL;
+  if (rc >= 4 && ov[7] != PCRE2_UNSET) {
+    title = malloc(ov[7] - ov[6] + 1);
+    memcpy(title, str + ov[6], ov[7] - ov[6]);
+    title[ov[7] - ov[6]] = '\0';
+  }
+
+  MDLinkReference *ref = new_md_link_reference(label, url, title);
+
+  pcre2_match_data_free_8(md);
+  pcre2_code_free_8(re);
+
+  free(label);
+  free(url);
+  if (title) {
+    free(title);
+  }
+
+  return ref;
+}
+
+MDLinkReference *gen_markdown_link_reference_list(PeekReader *reader) {
+  if (reader == NULL) {
+    return NULL;
+  }
+
+  MDLinkReference *head = NULL;
   do {
     char *line = peek_reader_current(reader);
 
-    pcre2_match_data_8 *md = pcre2_match_data_create_from_pattern_8(re, NULL);
-    PCRE2_SIZE line_len = strlen(line);
-    PCRE2_SIZE offset = 0;
-    int rc;
-
-    if ((rc = pcre2_match_8(re, (PCRE2_SPTR8)line, line_len, offset, 0, md,
-                            NULL)) < 0) {
-      pcre2_match_data_free_8(md);
-      continue; // No match found
+    MDLinkReference *ref = parse_markdown_links_reference(line);
+    if (ref == NULL) {
+      continue;
     }
-
-    PCRE2_SIZE *ov = pcre2_get_ovector_pointer_8(md);
-    char *label = malloc(ov[3] - ov[2] + 1);
-    char *url = malloc(ov[5] - ov[4] + 1);
-    memcpy(label, line + ov[2], ov[3] - ov[2]);
-    memcpy(url, line + ov[4], ov[5] - ov[4]);
-    label[ov[3] - ov[2]] = '\0';
-    url[ov[5] - ov[4]] = '\0';
-    str_to_lower(label); // Normalize label to lowercase
-
-    char *title = NULL;
-    if (rc >= 4 && ov[7] != PCRE2_UNSET) {
-      title = malloc(ov[7] - ov[6] + 1);
-      memcpy(title, line + ov[6], ov[7] - ov[6]);
-      title[ov[7] - ov[6]] = '\0';
-    }
-
-    MDLinkReference *ref = new_md_link_reference(label, url, title);
-    // if (ref != NULL) {
-    //   printf("Found reference link: label='%s', url='%s', title='%s'\n",
-    //          ref->label, ref->url, ref->title ? ref->title : "(none)");
-    // }
 
     if (head == NULL) {
       head = ref; // First link reference
@@ -185,16 +341,43 @@ MDLinkReference *parse_markdown_links_reference(PeekReader *reader) {
       head = ref;
     }
 
-    free(label);
-    free(url);
-    free(title);
-
-    pcre2_match_data_free_8(md);
-
   } while (peek_reader_advance(reader));
 
-  pcre2_code_free_8(re);
   return head;
+}
+
+MDLinkReference *find_link_reference(MDLinkReference *head, char *label) {
+  if (head == NULL || label == NULL) {
+    return NULL;
+  }
+
+  str_to_lower(label); // Normalize label to lowercase
+
+  MDLinkReference *current = head;
+  while (current) {
+    if (strcmp(current->label, label) == 0) {
+      return current; // Found the reference
+    }
+    current = current->next;
+  }
+  return NULL; // Not found
+}
+
+MDLinkRegex *new_md_link(const char *label, const char *url, const char *title,
+                         int start, int end) {
+  MDLinkRegex *link = malloc(sizeof(MDLinkRegex));
+  if (!link) {
+    perror("malloc MDLinkRegex failed");
+    return NULL;
+  }
+
+  link->label = strdup(label);
+  link->url = strdup(url);
+  link->title = title ? strdup(title) : NULL;
+  link->start = start;
+  link->end = end;
+
+  return link;
 }
 
 void free_md_links(MDLinkRegex *links, size_t count) {
@@ -262,6 +445,32 @@ void str_to_lower(char *str) {
 
 #ifdef TEST_MD_REGEX
 int main(void) {
+  // Test parse markdown links reference
+  char *lines[] = {
+      "[1]: https://example.com \"Example Link\"",
+      "[2]: https://example.org",
+      "[3]: https://example.net \"Another Example\"",
+      "[4]:https://example.com/another \"Another Link\"",
+      "[5]: <https://en.wikipedia.org/wiki/Hobbit#Lifestyle> 'Hobbit "
+      "lifestyles'",
+      "[abcde, ]: <https://en.wikipedia.org/wiki/Hobbit#Lifestyle> (Hobbit "
+      "lifestyles)",
+      "[UPPERCASE label]: <https://en.wikipedia.org/wiki/Hobbit#Lifestyle> "
+      "(Hobbit lifestyles)",
+      "[ddg]: https://duckduckgo.com \"The best search engine for privacy\"",
+      "[google]: https://www.google.com \"Google Search Engine\"",
+  };
+  PeekReader *reader = new_peek_reader_from_lines(lines, 9, DEFAULT_PEEK_COUNT);
+  if (!reader) {
+    fprintf(stderr, "Failed to create peek reader\n");
+    return 1;
+  }
+
+  MDLinkReference *ref_head = gen_markdown_link_reference_list(reader);
+  print_md_links_reference(ref_head);
+
+  printf("\n");
+
   /* Subject with two markdown links */
   PCRE2_SPTR8 subject =
       (PCRE2_SPTR8) "A privacy-focused link: [Duck Duck "
@@ -276,7 +485,8 @@ int main(void) {
                     "search engine for privacy\")</code> haha\n";
 
   size_t link_count = 0;
-  MDLinkRegex *links = parse_markdown_links((const char *)subject, &link_count);
+  MDLinkRegex *links =
+      parse_markdown_links(ref_head, (const char *)subject, &link_count);
 
   for (size_t i = 0; i < link_count; i++) {
     printf("Link %zu:\n", i + 1);
@@ -289,33 +499,37 @@ int main(void) {
     }
     printf("  Start : %d\n", links[i].start);
     printf("  End: %d\n", links[i].end);
-    free(links[i].label);
-    free(links[i].url);
-    free(links[i].title);
+    // free(links[i].label);
+    // free(links[i].url);
+    // free(links[i].title);
   }
 
   printf("\n");
 
-  // Test parse markdown links reference
-  char *lines[] = {
-      "[1]: https://example.com \"Example Link\"",
-      "[2]: https://example.org",
-      "[3]: https://example.net \"Another Example\"",
-      "[4]:https://example.com/another \"Another Link\"",
-      "[5]: <https://en.wikipedia.org/wiki/Hobbit#Lifestyle> 'Hobbit "
-      "lifestyles'",
-      "[abcde, ]: <https://en.wikipedia.org/wiki/Hobbit#Lifestyle> (Hobbit "
-      "lifestyles)",
-      "[UPPERCASE label]: <https://en.wikipedia.org/wiki/Hobbit#Lifestyle> "
-      "(Hobbit lifestyles)"};
-  PeekReader *reader = new_peek_reader_from_lines(lines, 7, DEFAULT_PEEK_COUNT);
-  if (!reader) {
-    fprintf(stderr, "Failed to create peek reader\n");
-    return 1;
-  }
+  // Test parse_markdown_links_tag
+  const char *tag_subject = "This is a test for markdown links with tags:\n"
+                            "[Duck Duck Go][ddg]\n"
+                            "[Google] [google]\n"
+                            "[Error link with no reference][error]\n";
 
-  MDLinkReference *ref_head = parse_markdown_links_reference(reader);
-  print_md_links_reference(ref_head);
+  link_count = 0;
+  links = parse_markdown_links(ref_head, tag_subject, &link_count);
+
+  for (size_t i = 0; i < link_count; i++) {
+    printf("Link %zu:\n", i + 1);
+    printf("  Label : \"%s\"\n", links[i].label);
+    printf("  URL   : \"%s\"\n", links[i].url);
+    if (links[i].title) {
+      printf("  Title : \"%s\"\n", links[i].title);
+    } else {
+      printf("  Title : (none)\n");
+    }
+    printf("  Start : %d\n", links[i].start);
+    printf("  End: %d\n", links[i].end);
+    // free(links[i].label);
+    // free(links[i].url);
+    // free(links[i].title);
+  }
 
   return 0;
 }

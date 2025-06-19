@@ -11,15 +11,15 @@
 
 static const int INDENT_SIZE = 4;
 
-const int parsers_count = 9;
+const int parsers_count = 10;
 Parsers parsers[] = {{heading_parser, 0},      {blockquote_parser, 1},
                      {ordered_list_parser, 1}, {unordered_list_parser, 1},
                      {codeblock_parser, 1},    {horizontal_line_parser, 0},
-                     {plain_parser, 0},        {paragraph_parser, 1},
-                     {section_break_parser, 0}};
+                     {plain_parser, 0},        {link_reference_parser, 0},
+                     {paragraph_parser, 1},    {section_break_parser, 0}};
 
 MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
-                       PeekReader *reader) {
+                       PeekReader *reader, MDLinkReference *link_ref_head) {
   printf("parsing block: %s\n", peek_reader_current(reader));
   MDBlock *new_block = NULL;
 
@@ -32,7 +32,7 @@ MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
     }
     if (new_block != NULL) {
       if (new_block != curr_block && curr_block != NULL) {
-        child_parsing_exec(curr_block);
+        child_parsing_exec(link_ref_head, curr_block);
       }
       return new_block;
     }
@@ -42,29 +42,30 @@ MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
 }
 
 MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
-                               PeekReader *reader) {
+                               PeekReader *reader,
+                               MDLinkReference *link_ref_head) {
   MDBlock *new_block = list_item_parser(prnt_block, curr_block, reader);
   if (new_block != NULL) {
     // printf("list item block content: %s\n", new_block->content);
     if (strchr(new_block->content, '\n') != NULL) {
       printf("parse list item child block\n");
-      new_block->child = child_block_parsing(new_block);
+      new_block->child = child_block_parsing(link_ref_head, new_block);
     }
     // printf("return list item block\n");
     return new_block;
   }
 
-  new_block = block_parsing(prnt_block, curr_block, reader);
+  new_block = block_parsing(prnt_block, curr_block, reader, link_ref_head);
   return new_block;
 }
 
-void child_parsing_exec(MDBlock *block) {
+void child_parsing_exec(MDLinkReference *head, MDBlock *block) {
   if (block) {
     switch (block->block) {
     case BLOCKQUOTE:
     case ORDERED_LIST:
     case UNORDERED_LIST:
-      block->child = child_block_parsing(block);
+      block->child = child_block_parsing(head, block);
       break;
     default:
       break;
@@ -72,7 +73,8 @@ void child_parsing_exec(MDBlock *block) {
   }
 }
 
-MDBlock *child_block_parsing(MDBlock *prnt_block) {
+MDBlock *child_block_parsing(MDLinkReference *link_ref_head,
+                             MDBlock *prnt_block) {
   printf("child block parsing content:\n%s\n", prnt_block->content);
   MDBlock *head_block = NULL;
   MDBlock *tail_block = head_block;
@@ -92,7 +94,8 @@ MDBlock *child_block_parsing(MDBlock *prnt_block) {
   }
 
   do {
-    new_block = content_block_parsing(prnt_block, tail_block, reader);
+    new_block =
+        content_block_parsing(prnt_block, tail_block, reader, link_ref_head);
     if (new_block != NULL) {
       if (new_block == tail_block) {
         continue;
@@ -107,13 +110,13 @@ MDBlock *child_block_parsing(MDBlock *prnt_block) {
     }
   } while (reader->count > 0);
 
-  child_parsing_exec(tail_block);
-  inline_parsing(tail_block);
+  child_parsing_exec(link_ref_head, tail_block);
+  inline_parsing(link_ref_head, tail_block);
 
   return head_block;
 }
 
-void inline_parsing(MDBlock *block) {
+void inline_parsing(MDLinkReference *list, MDBlock *block) {
   if (block == NULL || block->content == NULL) {
     return;
   }
@@ -132,7 +135,7 @@ void inline_parsing(MDBlock *block) {
     printf("replace content\n");
   }
 
-  char *link_content = link_parser(block->content);
+  char *link_content = link_parser(list, block->content);
   printf("inline link content: %s\n", link_content);
   if (link_content != NULL && link_content != block->content) {
     free(block->content);
@@ -396,6 +399,26 @@ MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,
   return NULL;
 }
 
+MDBlock *link_reference_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                               PeekReader *reader) {
+  char *line = peek_reader_current(reader);
+  if (is_empty_or_whitespace(line)) {
+    return NULL;
+  }
+
+  MDLinkReference *ref = parse_markdown_links_reference(line);
+  if (ref == NULL) {
+    return NULL;
+  }
+
+  MDBlock *new_block = new_mdblock(line, NULL, LINK_REFERENCE, NONE, 0);
+
+  free_md_link_reference(ref);
+
+  peek_reader_advance(reader);
+  return new_block;
+}
+
 MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block,
                       PeekReader *reader) {
   char *line = peek_reader_current(reader);
@@ -516,21 +539,25 @@ char *emphasis_parser(char *str) {
   return result;
 }
 
-char *link_parser(char *str) {
+char *link_parser(MDLinkReference *list, char *str) {
   if (str == NULL) {
     return NULL;
   }
 
   size_t count = 0;
-  MDLinkRegex *links = parse_markdown_links(str, &count);
+  MDLinkRegex *links = parse_markdown_links(list, str, &count);
 
   if (links == NULL || count == 0) {
     return str; // No links found, return original string
   }
 
+  int offset = 0;
   char *dup_str = strdup(str);
   for (size_t i = 0; i < count; i++) {
     MDLinkRegex *link = &links[i];
+
+    link->start += offset;
+    link->end += offset;
 
     char *sub_str = NULL;
     if (link->title) {
@@ -575,6 +602,7 @@ char *link_parser(char *str) {
            strlen(dup_str) - link->end);
     tmp_str[tmp_len] = '\0'; // Null-terminate the string
 
+    offset += strlen(sub_str) - (link->end - link->start);
     free(dup_str);
     dup_str = tmp_str; // Update str to the new string with link replaced
   }

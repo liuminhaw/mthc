@@ -10,6 +10,7 @@
 // #define PSR_H6_PATTERN "^######\\s+(.*)$"
 
 #include "file_reader.h"
+#include "md_regex.h"
 
 typedef enum {
   INVALID,
@@ -27,6 +28,7 @@ typedef enum {
   CODEBLOCK,
   HORIZONTAL_LINE,
   SECTION_BREAK,
+  LINK_REFERENCE,
   PLAIN // plain text that don't use any tag 
 } BlockTag;
 
@@ -56,7 +58,7 @@ typedef struct {
 MDBlock* new_mdblock(char *content, char *html_tag, BlockTag block_tag, 
                      TagType type, int content_newline);
 
-MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *block, PeekReader *reader);
+MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *block, PeekReader *reader, MDLinkReference *link_ref_head);
 MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
@@ -67,12 +69,14 @@ MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekRe
 MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
-MDBlock *child_block_parsing(MDBlock *block);
+MDBlock *link_reference_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
+MDBlock *child_block_parsing(MDLinkReference *link_ref_head, MDBlock *block);
+MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader, MDLinkReference *link_ref_head);
 
-void inline_parsing(MDBlock *block);
+void inline_parsing(MDLinkReference *list, MDBlock *block);
 char *line_break_parser(const char *line);
 char *emphasis_parser(char *str);
-char *link_parser(char *str);
+char *link_parser(MDLinkReference *list, char *str);
 
 int is_header_block(MDBlock block);
 int is_heading_syntax(char **str);
@@ -87,7 +91,7 @@ bool safe_paragraph_content(PeekReader *reader, int peek);
 bool safe_ordered_list_content(PeekReader *reader, int peek);
 bool safe_unordered_list_content(PeekReader *reader, int peek);
 
-void child_parsing_exec(MDBlock *block);
+void child_parsing_exec(MDLinkReference *link_ref_head, MDBlock *block);
 void mdblock_content_update(MDBlock *block, char *content, char *formatter);
 
 char* blocktag_to_string(BlockTag block);

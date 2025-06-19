@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Failed to create peek reader\n");
     return 1;
   }
-  MDLinkReference *link_ref_head = parse_markdown_links_reference(reader);
+  MDLinkReference *link_ref_head = gen_markdown_link_reference_list(reader);
 
   rewind(md_file);
   reader = new_peek_reader_from_file(md_file, DEFAULT_PEEK_COUNT);
@@ -30,13 +30,13 @@ int main(int argc, char *argv[]) {
   }
 
   do {
-    new_block = block_parsing(NULL, tail_block, reader);
+    new_block = block_parsing(NULL, tail_block, reader, link_ref_head);
 
     if (new_block != NULL) {
       printf("block: %d, content: %s\n", new_block->block, new_block->content);
 
-      child_parsing_exec(tail_block);
-      inline_parsing(tail_block);
+      child_parsing_exec(link_ref_head, tail_block);
+      inline_parsing(link_ref_head, tail_block);
 
       if (head_block == NULL) {
         head_block = new_block;
@@ -49,8 +49,8 @@ int main(int argc, char *argv[]) {
   } while (reader->count > 0);
   fclose(md_file);
 
-  child_parsing_exec(tail_block);
-  inline_parsing(tail_block);
+  child_parsing_exec(link_ref_head, tail_block);
+  inline_parsing(link_ref_head, tail_block);
 
   // Traverse block list
   printf("\n=== Traverse block list ===\n");
@@ -68,7 +68,7 @@ void print_html(MDBlock *block) {
     return;
   }
 
-  if (block->block == SECTION_BREAK) {
+  if (block->block == SECTION_BREAK || block->block == LINK_REFERENCE) {
     print_html(block->next);
     return;
   }

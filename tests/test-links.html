@@ -11,6 +11,9 @@ My search engine is <a href="https://www.google.com">Google</a>.
 My search engine is <strong><a href="https://www.google.com">Google</a></strong>.
 </p>
 <p>
+My search engine are <strong><a href="https://www.google.com">Google</a></strong> and <em><a href="https://duckduckgo.com">DuckDuckGo</a></em>.
+</p>
+<p>
 Testing code section <code>[Google](https://www.google.com)</code> should not be emphasized.
 </p>
 <p>
@@ -25,4 +28,29 @@ See the section on <a href="#code"><code>code</code></a>.
 <pre>
 No links will be transformed in code blocks.
 [Google](https://www.google.com) should not be transformed in code blocks.
+[DuckDuckGo][1].
 </pre>
+<p>
+Testing for reference-style link <a href="https://www.google.com" title="The well-known search engine">Google</a>.
+</p>
+<p>
+Another reference-style link <a href="https://duckduckgo.com">DuckDuckGo</a> without title.
+</p>
+<p>
+This has no reference, should not be transformed: [empty ref][not-a-reference].
+</p>
+<p>
+Reference style with two space is not valid [Google]  [1].
+</p>
+<p>
+Reference label is case-insensitive: <a href="https://duckduckgo.com">DuckDuckGo</a>.
+</p>
+<p>
+Testing with invalid label [Invalid][invalid-標籤] or [Invalid][label，].
+</p>
+<p>
+Multiple links test <a href="https://www.google.com" title="search">Google</a> and <a href="https://duckduckgo.com">DuckDuckGo</a>.
+</p>
+<p>
+Reference style within code <code>[Google][1]</code> should not be transformed, but code within reference <a href="https://www.google.com" title="The well-known search engine"><code>Google</code></a> should be transformed.
+</p>
