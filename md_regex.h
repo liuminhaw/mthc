@@ -23,6 +23,7 @@ MDLinkRegex *new_md_link(const char *label, const char *url, const char *title, 
 MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str, size_t *result_count);
 MDLinkRegex *parse_markdown_general_links(const char *str, size_t *result_count);
 MDLinkRegex *parse_markdown_links_tag(MDLinkReference *head, const char *str, size_t *result_count);
+MDLinkRegex *parse_simple_addresses(const char *str, size_t *result_count);
 void free_md_links(MDLinkRegex *links, size_t count);
 
 MDLinkReference *parse_markdown_links_reference(char *str);

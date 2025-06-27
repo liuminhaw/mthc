@@ -29,6 +29,7 @@ See the section on <a href="#code"><code>code</code></a>.
 No links will be transformed in code blocks.
 [Google](https://www.google.com) should not be transformed in code blocks.
 [DuckDuckGo][1].
+<https://www.example.com>
 </pre>
 <p>
 Testing for reference-style link <a href="https://www.google.com" title="The well-known search engine">Google</a>.
@@ -52,5 +53,14 @@ Testing with invalid label [Invalid][invalid-標籤] or [Invalid][label，].
 Multiple links test <a href="https://www.google.com" title="search">Google</a> and <a href="https://duckduckgo.com">DuckDuckGo</a>.
 </p>
 <p>
+Multiple reference links test <a href="https://www.google.com" title="The well-known search engine">Google</a> and <a href="https://duckduckgo.com">DuckDuckGo</a>.
+</p>
+<p>
 Reference style within code <code>[Google][1]</code> should not be transformed, but code within reference <a href="https://www.google.com" title="The well-known search engine"><code>Google</code></a> should be transformed.
+</p>
+<p>
+Testing URL and email address <a href="https://www.markdownguide.org">https://www.markdownguide.org</a> with <a href="mailto:fake@example.com">fake@example.com</a>
+</p>
+<p>
+Combine <a href="https://www.markdownguide.org">markdown</a> with email <strong><a href="mailto:fake@example.com">fake@example.com</a></strong>
 </p>

@@ -16,26 +16,16 @@ MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str,
   MDLinkRegex *general_links =
       parse_markdown_general_links(str, &general_link_count);
 
+  size_t simple_address_count = 0;
+  MDLinkRegex *simple_addresses =
+      parse_simple_addresses(str, &simple_address_count);
+
   size_t tag_link_count = 0;
   MDLinkRegex *tag_links = parse_markdown_links_tag(head, str, &tag_link_count);
 
-  if (general_links == NULL && tag_links == NULL) {
-    *result_count = 0;
-    printf("parse markdown links: No links found.\n");
-
-    return NULL;
-  } else if (general_links == NULL) {
-    *result_count = tag_link_count;
-    printf("parse markdown links: return general.\n");
-    return tag_links;
-  } else if (tag_links == NULL) {
-    *result_count = general_link_count;
-    printf("parse markdown links: return tags.\n");
-    return general_links;
-  }
-
   // Combine both arrays
-  size_t total_count = general_link_count + tag_link_count;
+  size_t total_count =
+      general_link_count + simple_address_count + tag_link_count;
   MDLinkRegex *combined_links = malloc(total_count * sizeof(MDLinkRegex));
   if (!combined_links) {
     perror("malloc failed");
@@ -49,6 +39,8 @@ MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str,
          general_link_count * sizeof(MDLinkRegex));
   memcpy(combined_links + general_link_count, tag_links,
          tag_link_count * sizeof(MDLinkRegex));
+  memcpy(combined_links + general_link_count + tag_link_count, simple_addresses,
+         simple_address_count * sizeof(MDLinkRegex));
 
   // free_md_links(general_links, general_link_count);
   // free_md_links(tag_links, tag_link_count);
@@ -320,6 +312,108 @@ MDLinkReference *parse_markdown_links_reference(char *str) {
   return ref;
 }
 
+// parsing url and email addresses that is enclose in angle brackets.
+// For example: <https://www.markdownguide.org> or <fake@example.com>
+MDLinkRegex *parse_simple_addresses(const char *str, size_t *result_count) {
+  if (str == NULL) {
+    return NULL;
+  }
+
+  PCRE2_SPTR8 subject = (PCRE2_SPTR8)str;
+  PCRE2_SPTR8 pattern =
+      (PCRE2_SPTR8) "(?s)<code>.*?</code>(*SKIP)(*FAIL)|"
+                    "<((https?://"
+                    "[^\\s<>]+)|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9."
+                    "-]+\\.[a-zA-Z]{2,}))>";
+
+  int errorcode;
+  PCRE2_SIZE erroroffset;
+
+  // Compile with UTF and Unicode-property support
+  pcre2_code_8 *re =
+      pcre2_compile_8(pattern, PCRE2_ZERO_TERMINATED, PCRE2_UTF | PCRE2_UCP,
+                      &errorcode, &erroroffset, NULL);
+  if (!re) {
+    PCRE2_UCHAR8 buffer[256];
+    pcre2_get_error_message_8(errorcode, buffer, sizeof(buffer));
+    fprintf(stderr, "PCRE2 compilation failed at offset %zu: %s\n", erroroffset,
+            buffer);
+    return NULL;
+  }
+
+  /* Prepare match data block */
+  pcre2_match_data_8 *md = pcre2_match_data_create_from_pattern_8(re, NULL);
+  PCRE2_SIZE subject_len = strlen((char *)subject);
+  PCRE2_SIZE offset = 0;
+  int rc;
+
+  // Setup dynamic array for storing MDLinkRegex output
+  size_t capacity = 2;
+  size_t count = 0;
+  MDLinkRegex *arr = malloc(capacity * sizeof(MDLinkRegex));
+  if (!arr) {
+    perror("malloc MDLinkRegex failed");
+    pcre2_match_data_free_8(md);
+    pcre2_code_free_8(re);
+    return NULL;
+  }
+
+  // Loop over matches
+  while ((rc = pcre2_match_8(re, subject, subject_len, offset, 0, md, NULL)) >=
+         0) {
+    // [0]..[1] = full-match start/end, [2]..[3]=group1, [4]..[5]=group2,
+    // [6]..[7]=group3
+    PCRE2_SIZE *ov = pcre2_get_ovector_pointer_8(md);
+
+    // Grow dynamic array
+    if (count == capacity) {
+      capacity *= 2;
+      MDLinkRegex *tmp = realloc(arr, capacity * sizeof(*arr));
+      if (!tmp) {
+        perror("realloc");
+        break;
+      }
+      arr = tmp;
+    }
+
+    // Extract captured info
+    char *label = malloc(ov[3] - ov[2] + 1);
+    char *url = NULL;
+    if (ov[6] != PCRE2_UNSET && ov[7] != PCRE2_UNSET) {
+      // Email address matched
+      // Plus 7 for "mailto:" prefix
+      url = malloc(ov[3] - ov[2] + 7 + 1);
+      memcpy(url, "mailto:", 7);
+      memcpy(url + 7, subject + ov[2], ov[3] - ov[2]);
+      url[ov[3] - ov[2] + 7] = '\0';
+    } else {
+      // URL matched
+      url = malloc(ov[3] - ov[2] + 1);
+      memcpy(url, subject + ov[2], ov[3] - ov[2]);
+      url[ov[3] - ov[2]] = '\0';
+    }
+    char *title = NULL;
+    memcpy(label, subject + ov[2], ov[3] - ov[2]);
+    label[ov[3] - ov[2]] = '\0';
+
+    arr[count] =
+        *new_md_link(label, url, title, (int)(ov[2] - 1), (int)(ov[3] + 1));
+
+    count++;
+
+    free(label);
+    free(url);
+
+    offset = ov[1];
+  }
+
+  pcre2_match_data_free_8(md);
+  pcre2_code_free_8(re);
+
+  *result_count = count;
+  return arr;
+}
+
 MDLinkReference *gen_markdown_link_reference_list(PeekReader *reader) {
   if (reader == NULL) {
     return NULL;
@@ -515,6 +609,31 @@ int main(void) {
   link_count = 0;
   links = parse_markdown_links(ref_head, tag_subject, &link_count);
 
+  for (size_t i = 0; i < link_count; i++) {
+    printf("Link %zu:\n", i + 1);
+    printf("  Label : \"%s\"\n", links[i].label);
+    printf("  URL   : \"%s\"\n", links[i].url);
+    if (links[i].title) {
+      printf("  Title : \"%s\"\n", links[i].title);
+    } else {
+      printf("  Title : (none)\n");
+    }
+    printf("  Start : %d\n", links[i].start);
+    printf("  End: %d\n", links[i].end);
+    // free(links[i].label);
+    // free(links[i].url);
+    // free(links[i].title);
+  }
+
+  printf("\n");
+
+  // Test parsing simple addresses
+  const char *simple_subject = "Some text with <https://www.markdownguide.org> "
+                               "and <fake@example.com> inside. "
+                               "<www.invalid.com>, <fake#invalid.com>";
+
+  link_count = 0;
+  links = parse_markdown_links(ref_head, simple_subject, &link_count);
   for (size_t i = 0; i < link_count; i++) {
     printf("Link %zu:\n", i + 1);
     printf("  Label : \"%s\"\n", links[i].label);
