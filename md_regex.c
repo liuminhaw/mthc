@@ -31,6 +31,7 @@ MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str,
     perror("malloc failed");
     free_md_links(general_links, general_link_count);
     free_md_links(tag_links, tag_link_count);
+    free_md_links(simple_addresses, simple_address_count);
     *result_count = 0;
     return NULL;
   }
@@ -126,7 +127,7 @@ MDLinkRegex *parse_markdown_general_links(const char *str,
       title[ov[7] - ov[6]] = '\0';
     }
 
-    arr[count] = *new_md_link(label, url, title, (int)ov[0], (int)ov[1]);
+    arr[count] = *new_md_link(label, url, title, NULL, (int)ov[0], (int)ov[1]);
 
     count++;
 
@@ -213,8 +214,8 @@ MDLinkRegex *parse_markdown_links_tag(MDLinkReference *head, const char *str,
 
     MDLinkReference *ref = find_link_reference(head, tag);
     if (ref != NULL) {
-      arr[count] =
-          *new_md_link(label, ref->url, ref->title, (int)ov[0], (int)ov[1]);
+      arr[count] = *new_md_link(label, ref->url, ref->title, NULL, (int)ov[0],
+                                (int)ov[1]);
 
       count++;
     }
@@ -396,8 +397,127 @@ MDLinkRegex *parse_simple_addresses(const char *str, size_t *result_count) {
     memcpy(label, subject + ov[2], ov[3] - ov[2]);
     label[ov[3] - ov[2]] = '\0';
 
+    arr[count] = *new_md_link(label, url, title, NULL, (int)(ov[2] - 1),
+                              (int)(ov[3] + 1));
+
+    count++;
+
+    free(label);
+    free(url);
+
+    offset = ov[1];
+  }
+
+  pcre2_match_data_free_8(md);
+  pcre2_code_free_8(re);
+
+  *result_count = count;
+  return arr;
+}
+
+MDLinkRegex *parse_markdown_images(const char *str, size_t *result_count) {
+  if (str == NULL) {
+    return NULL;
+  }
+
+  PCRE2_SPTR8 subject = (PCRE2_SPTR8)str;
+  PCRE2_SPTR8 pattern =
+      (PCRE2_SPTR8) "!\\[(.*?)\\]\\((\\S+?)(?:\\s+\"([^\"]+)\")?\\)"
+                    "|\\[!\\[(.*?)\\]\\((\\S+?)(?:\\s+\"([^\"]+)\")?\\)\\]\\(("
+                    "\\S+?)\\)"; // linked image
+
+  int errorcode;
+  PCRE2_SIZE erroroffset;
+
+  // Compile with UTF and Unicode-property support
+  pcre2_code_8 *re =
+      pcre2_compile_8(pattern, PCRE2_ZERO_TERMINATED, PCRE2_UTF | PCRE2_UCP,
+                      &errorcode, &erroroffset, NULL);
+  if (!re) {
+    PCRE2_UCHAR8 buffer[256];
+    pcre2_get_error_message_8(errorcode, buffer, sizeof(buffer));
+    fprintf(stderr, "PCRE2 compilation failed at offset %zu: %s\n", erroroffset,
+            buffer);
+    return NULL;
+  }
+
+  /* Prepare match data block */
+  pcre2_match_data_8 *md = pcre2_match_data_create_from_pattern_8(re, NULL);
+  PCRE2_SIZE subject_len = strlen((char *)subject);
+  PCRE2_SIZE offset = 0;
+  int rc;
+
+  // Setup dynamic array for storing MDLinkRegex output
+  size_t capacity = 2;
+  size_t count = 0;
+  MDLinkRegex *arr = malloc(capacity * sizeof(MDLinkRegex));
+  if (!arr) {
+    perror("malloc MDLinkRegex failed");
+    pcre2_match_data_free_8(md);
+    pcre2_code_free_8(re);
+    return NULL;
+  }
+
+  // Loop over matches
+  while ((rc = pcre2_match_8(re, subject, subject_len, offset, 0, md, NULL)) >=
+         0) {
+    // [0]..[1] = full-match start/end, [2]..[3]=group1, [4]..[5]=group2,
+    // [6]..[7]=group3
+    PCRE2_SIZE *ov = pcre2_get_ovector_pointer_8(md);
+
+    // Grow dynamic array
+    if (count == capacity) {
+      capacity *= 2;
+      MDLinkRegex *tmp = realloc(arr, capacity * sizeof(*arr));
+      if (!tmp) {
+        perror("realloc");
+        break;
+      }
+      arr = tmp;
+    }
+
+    // Extract captured info
+    char *label = NULL;
+    char *src = NULL;
+    char *url = NULL;
+    char *title = NULL;
+    if (ov[8] != PCRE2_UNSET && ov[9] != PCRE2_UNSET) {
+      // linked image address matched
+      label = malloc(ov[9] - ov[8] + 1);
+      src = malloc(ov[11] - ov[10] + 1);
+      url = malloc(ov[15] - ov[14] + 1);
+      memcpy(label, subject + ov[8], ov[9] - ov[8]);
+      label[ov[9] - ov[8]] = '\0';
+      memcpy(src, subject + ov[10], ov[11] - ov[10]);
+      src[ov[11] - ov[10]] = '\0';
+      memcpy(url, subject + ov[14], ov[15] - ov[14]);
+      url[ov[15] - ov[14]] = '\0';
+      if (ov[12] != PCRE2_UNSET && ov[13] != PCRE2_UNSET) {
+        // Has title
+        title = malloc(ov[13] - ov[12] + 1);
+        memcpy(title, subject + ov[12], ov[13] - ov[12]);
+        title[ov[13] - ov[12]] = '\0';
+      }
+    } else {
+      // general image syntax
+      label = malloc(ov[3] - ov[2] + 1);
+      src = malloc(ov[5] - ov[4] + 1);
+      memcpy(label, subject + ov[2], ov[3] - ov[2]);
+      label[ov[3] - ov[2]] = '\0';
+      memcpy(src, subject + ov[4], ov[5] - ov[4]);
+      src[ov[5] - ov[4]] = '\0';
+      if (ov[6] != PCRE2_UNSET && ov[7] != PCRE2_UNSET) {
+        // Has title
+        title = malloc(ov[7] - ov[6] + 1);
+        memcpy(title, subject + ov[6], ov[7] - ov[6]);
+        title[ov[7] - ov[6]] = '\0';
+      }
+    }
+
+    // printf("parsed src: %s, url: %s\n", src, url);
+
     arr[count] =
-        *new_md_link(label, url, title, (int)(ov[2] - 1), (int)(ov[3] + 1));
+        *new_md_link(label, url, title, src, (int)(ov[0]), (int)(ov[1]));
 
     count++;
 
@@ -458,7 +578,7 @@ MDLinkReference *find_link_reference(MDLinkReference *head, char *label) {
 }
 
 MDLinkRegex *new_md_link(const char *label, const char *url, const char *title,
-                         int start, int end) {
+                         const char *src, int start, int end) {
   MDLinkRegex *link = malloc(sizeof(MDLinkRegex));
   if (!link) {
     perror("malloc MDLinkRegex failed");
@@ -466,8 +586,9 @@ MDLinkRegex *new_md_link(const char *label, const char *url, const char *title,
   }
 
   link->label = strdup(label);
-  link->url = strdup(url);
+  link->url = url ? strdup(url) : NULL;
   link->title = title ? strdup(title) : NULL;
+  link->src = src ? strdup(src) : NULL;
   link->start = start;
   link->end = end;
 
@@ -638,6 +759,45 @@ int main(void) {
     printf("Link %zu:\n", i + 1);
     printf("  Label : \"%s\"\n", links[i].label);
     printf("  URL   : \"%s\"\n", links[i].url);
+    if (links[i].title) {
+      printf("  Title : \"%s\"\n", links[i].title);
+    } else {
+      printf("  Title : (none)\n");
+    }
+    printf("  Start : %d\n", links[i].start);
+    printf("  End: %d\n", links[i].end);
+    // free(links[i].label);
+    // free(links[i].url);
+    // free(links[i].title);
+  }
+
+  printf("\n");
+
+  // Test parsing images
+  const char *image_subject =
+      "![Alt text](https://example.com/image.png \"Image Title\")\n"
+      "![Linked Image](https://example.com/linked-image.png \"Linked "
+      "Image Title\")\n"
+      "[![Linked Image](https://example.com/linked-image.png \"Linked "
+      "Image Title\")](https://example.com/linked-image-url)\n"
+      "With some text ![Alt text](https://example.com/image.png \"Image "
+      "Title\") between\n"
+      "![Alt text](https://example.com/image.png \"Image Title\") multiple "
+      "images link ![Alt text](https://example.com/image.png \"Image "
+      "Title\")\n";
+
+  link_count = 0;
+  links = parse_markdown_links(ref_head, image_subject, &link_count);
+  // links = parse_markdown_images(image_subject, &link_count);
+  for (size_t i = 0; i < link_count; i++) {
+    printf("Link %zu:\n", i + 1);
+    printf("  Label : \"%s\"\n", links[i].label);
+    printf("  Src   : \"%s\"\n", links[i].src);
+    if (links[i].url) {
+      printf("  Url   : \"%s\"\n", links[i].url);
+    } else {
+      printf("  Url   : (none)\n");
+    }
     if (links[i].title) {
       printf("  Title : \"%s\"\n", links[i].title);
     } else {

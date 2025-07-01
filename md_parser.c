@@ -135,6 +135,13 @@ void inline_parsing(MDLinkReference *list, MDBlock *block) {
     printf("replace content\n");
   }
 
+  char *image_content = image_parser(block->content);
+  printf("inline image content: %s\n", image_content);
+  if (image_content != NULL && image_content != block->content) {
+    free(block->content);
+    block->content = image_content;
+  }
+
   char *link_content = link_parser(list, block->content);
   printf("inline link content: %s\n", link_content);
   if (link_content != NULL && link_content != block->content) {
@@ -604,7 +611,106 @@ char *link_parser(MDLinkReference *list, char *str) {
 
     offset += strlen(sub_str) - (link->end - link->start);
     free(dup_str);
+    free(sub_str);
     dup_str = tmp_str; // Update str to the new string with link replaced
+  }
+
+  return dup_str;
+}
+
+char *image_parser(char *str) {
+  if (str == NULL) {
+    return NULL;
+  }
+
+  size_t count = 0;
+  MDLinkRegex *images = parse_markdown_images(str, &count);
+
+  if (images == NULL || count == 0) {
+    return str; // No images found, return original string
+  }
+
+  int offset = 0;
+  char *dup_str = strdup(str);
+  for (size_t i = 0; i < count; i++) {
+    MDLinkRegex *image = &images[i];
+
+    image->start += offset;
+    image->end += offset;
+
+    char *sub_str = NULL;
+    char *str_template = NULL;
+    if (image->url) {
+      // Has link on image
+      size_t link_len =
+          strlen(image->label) + strlen(image->url) + strlen(image->src) + 34;
+      if (image->title) {
+        link_len += strlen(image->title) + 9;
+        sub_str = malloc((link_len + 1) * sizeof(char));
+        if (sub_str == NULL) {
+          perror("malloc failed");
+          free_md_links(images, count);
+          return dup_str; // Return original string on error
+        }
+        sprintf(sub_str,
+                "<a href=\"%s\"><img src=\"%s\" title=\"%s\" alt=\"%s\"></a>",
+                image->url, image->src, image->title, image->label);
+      } else {
+        sub_str = malloc((link_len + 1) * sizeof(char));
+        if (sub_str == NULL) {
+          perror("malloc failed");
+          free_md_links(images, count);
+          return dup_str; // Return original string on error
+        }
+        sprintf(sub_str, "<a href=\"%s\"><img src=\"%s\" alt=\"%s\"></a>",
+                image->url, image->src, image->label);
+      }
+    } else {
+      size_t link_len = strlen(image->label) + strlen(image->src) + 19;
+      if (image->title) {
+        link_len += strlen(image->title) + 9;
+        sub_str = malloc((link_len + 1) * sizeof(char));
+        if (sub_str == NULL) {
+          perror("malloc failed");
+          free_md_links(images, count);
+          return dup_str; // Return original string on error
+        }
+        sprintf(sub_str, "<img src=\"%s\" title=\"%s\" alt=\"%s\">", image->src,
+                image->title, image->label);
+      } else {
+        sub_str = malloc((link_len + 1) * sizeof(char));
+        if (sub_str == NULL) {
+          perror("malloc failed");
+          free_md_links(images, count);
+          return dup_str; // Return original string on error
+        }
+        sprintf(sub_str, "<img src=\"%s\" alt=\"%s\">", image->src,
+                image->label);
+      }
+    }
+
+    char *tmp_str;
+    size_t tmp_len =
+        strlen(dup_str) + strlen(sub_str) - (image->end - image->start);
+    tmp_str = malloc((tmp_len + 1) * sizeof(char));
+    if (tmp_str == NULL) {
+      perror("malloc failed");
+      free(sub_str);
+      free_md_links(images, count);
+      return str; // Return original string on error
+    }
+
+    // Copy the part before the image
+    memcpy(tmp_str, dup_str, image->start);
+    memcpy(tmp_str + image->start, sub_str, strlen(sub_str));
+    memcpy(tmp_str + image->start + strlen(sub_str), dup_str + image->end,
+           strlen(dup_str) - image->end);
+    tmp_str[tmp_len] = '\0'; // Null-terminate the string
+
+    offset += strlen(sub_str) - (image->end - image->start);
+    free(dup_str);
+    free(sub_str);
+    dup_str = tmp_str; // Update str to the new string with image replaced
   }
 
   return dup_str;

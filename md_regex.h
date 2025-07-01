@@ -7,6 +7,7 @@
 typedef struct {
   char *label;
   char *url;
+  char *src; // source for image links
   char *title; // Optional title
   int start;
   int end;
@@ -19,11 +20,12 @@ typedef struct MDLinkReference {
   struct MDLinkReference *next; // For linked list of references
 } MDLinkReference;
 
-MDLinkRegex *new_md_link(const char *label, const char *url, const char *title, int start, int end);
+MDLinkRegex *new_md_link(const char *label, const char *url, const char *title, const char *src, int start, int end);
 MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str, size_t *result_count);
 MDLinkRegex *parse_markdown_general_links(const char *str, size_t *result_count);
 MDLinkRegex *parse_markdown_links_tag(MDLinkReference *head, const char *str, size_t *result_count);
 MDLinkRegex *parse_simple_addresses(const char *str, size_t *result_count);
+MDLinkRegex *parse_markdown_images(const char *str, size_t *result_count);
 void free_md_links(MDLinkRegex *links, size_t count);
 
 MDLinkReference *parse_markdown_links_reference(char *str);

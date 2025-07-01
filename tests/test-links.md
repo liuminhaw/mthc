@@ -45,3 +45,4 @@ but code within reference [`Google`][1] should be transformed.
 Testing URL and email address <https://www.markdownguide.org> with <fake@example.com>
 
 Combine [markdown](https://www.markdownguide.org) with email **<fake@example.com>**
+

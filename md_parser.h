@@ -77,6 +77,7 @@ void inline_parsing(MDLinkReference *list, MDBlock *block);
 char *line_break_parser(const char *line);
 char *emphasis_parser(char *str);
 char *link_parser(MDLinkReference *list, char *str);
+char *image_parser(char *str); 
 
 int is_header_block(MDBlock block);
 int is_heading_syntax(char **str);
