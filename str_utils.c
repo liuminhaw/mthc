@@ -249,6 +249,12 @@ TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
       break;
     }
 
+    if (prev_ch == '\\' && (ch == '*' || ch == '_')) {
+      // If the previous character is a backslash, skip this character
+      traverse_ptr = next;
+      continue;
+    }
+
     ucs4_t peek_ch;
     switch (ch) {
     case '*':
@@ -256,6 +262,9 @@ TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
         // Found bold syntax
         const uint8_t *peek_ptr = str_move(next, 1);
         const uint8_t *end_ptr = u8_strstr(peek_ptr, (const uint8_t *)"**");
+        while (end_ptr != NULL && end_ptr >= 1 && *(end_ptr - 1) == '\\') {
+          end_ptr = u8_strstr(str_move(end_ptr, 1), (const uint8_t *)"**");
+        }
         if (end_ptr == NULL) {
           traverse_ptr = next;
           continue; // No closing tag found, continue searching
@@ -273,6 +282,9 @@ TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
       } else {
         // Found italic syntax
         const uint8_t *end_ptr = u8_strstr(next, (const uint8_t *)"*");
+        while (end_ptr != NULL && end_ptr >= 1 && *(end_ptr - 1) == '\\') {
+          end_ptr = u8_strstr(str_move(end_ptr, 1), (const uint8_t *)"*");
+        }
         if (end_ptr == NULL) {
           traverse_ptr = next;
           continue; // No closing tag found, continue searching
@@ -298,6 +310,9 @@ TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
 
         do {
           end_ptr = u8_strstr(peek_ptr, (const uint8_t *)"__");
+          while (end_ptr != NULL && end_ptr >= 1 && *(end_ptr - 1) == '\\') {
+            end_ptr = u8_strstr(str_move(end_ptr, 1), (const uint8_t *)"__");
+          }
           if (end_ptr == NULL) {
             break;
           }
@@ -330,6 +345,9 @@ TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
         const uint8_t *end_ptr = NULL;
         do {
           end_ptr = u8_strstr(next, (const uint8_t *)"_");
+          while (end_ptr != NULL && end_ptr >= 1 && *(end_ptr - 1) == '\\') {
+            end_ptr = u8_strstr(str_move(end_ptr, 1), (const uint8_t *)"_");
+          }
           if (end_ptr == NULL) {
             break;
           }
@@ -367,11 +385,22 @@ TagPair *find_code_tag_pair(char *str, uint8_t *start_ptr) {
   const uint8_t *traverse_ptr = start_ptr;
   const size_t str_len = strlen(str);
 
+  ucs4_t prev_ch = 0;
   ucs4_t ch = 0;
   while (traverse_ptr != NULL) {
+    if (ch != 0) {
+      prev_ch = ch;
+    }
+
     const uint8_t *next = u8_next(&ch, traverse_ptr);
     if (!next) {
       break;
+    }
+
+    if (prev_ch == '\\' && ch == '`') {
+      // If the previous character is a backslash, skip this character
+      traverse_ptr = next;
+      continue;
     }
 
     ucs4_t peek_ch;

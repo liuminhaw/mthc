@@ -101,6 +101,49 @@ MDLinkRegex *parse_markdown_general_links(const char *str,
     // [6]..[7]=group3
     PCRE2_SIZE *ov = pcre2_get_ovector_pointer_8(md);
 
+    // Checking escape syntax
+    // label part
+    if (ov[2] >= 1 && subject[ov[2] - 1] == '[') {
+      if (is_escaped_at((char *)subject, ov[2] - 1)) {
+        offset = ov[1];
+        continue; // Skip escaped links
+      }
+    }
+    if (subject[ov[3]] == ']') {
+      if (is_escaped_at((char *)subject, ov[3])) {
+        offset = ov[1];
+        continue; // Skip escaped links
+      }
+    }
+    // Checking url part
+    if (ov[4] >= 1 && subject[ov[4] - 1] == '(') {
+      if (is_escaped_at((char *)subject, ov[4] - 1)) {
+        offset = ov[1];
+        continue;
+      }
+    }
+    if (subject[ov[5]] == ')') {
+      if (is_escaped_at((char *)subject, ov[5])) {
+        offset = ov[1];
+        continue;
+      }
+    }
+    // Checking title part
+    if (ov[6] != PCRE2_UNSET && ov[7] != PCRE2_UNSET) {
+      if (ov[6] >= 1 && subject[ov[6] - 1] == '"') {
+        if (is_escaped_at((char *)subject, ov[6] - 1)) {
+          offset = ov[1];
+          continue;
+        }
+      }
+      if (subject[ov[7]] == '"') {
+        if (is_escaped_at((char *)subject, ov[7])) {
+          offset = ov[1];
+          continue;
+        }
+      }
+    }
+
     // Grow dynamic array
     if (count == capacity) {
       capacity *= 2;
@@ -193,6 +236,34 @@ MDLinkRegex *parse_markdown_links_tag(MDLinkReference *head, const char *str,
     // [0]..[1] = full-match start/end, [2]..[3]=group1, [4]..[5]=group2
     PCRE2_SIZE *ov = pcre2_get_ovector_pointer_8(md);
 
+    // Checking escape syntax
+    // label part
+    if (ov[2] >= 1 && subject[ov[2] - 1] == '[') {
+      if (is_escaped_at((char *)subject, ov[2] - 1)) {
+        offset = ov[1];
+        continue;
+      }
+    }
+    if (subject[ov[3]] == ']') {
+      if (is_escaped_at((char *)subject, ov[3])) {
+        offset = ov[1];
+        continue;
+      }
+    }
+    // tag part
+    if (ov[4] >= 1 && subject[ov[4] - 1] == '[') {
+      if (is_escaped_at((char *)subject, ov[4] - 1)) {
+        offset = ov[1];
+        continue;
+      }
+    }
+    if (subject[ov[5]] == ']') {
+      if (is_escaped_at((char *)subject, ov[5])) {
+        offset = ov[1];
+        continue;
+      }
+    }
+
     // Grow dynamic array
     if (count == capacity) {
       capacity *= 2;
@@ -284,6 +355,48 @@ MDLinkReference *parse_markdown_links_reference(char *str) {
   }
 
   PCRE2_SIZE *ov = pcre2_get_ovector_pointer_8(md);
+
+  // Checking escape syntax
+  // label part
+  PCRE2_SPTR8 subject = (PCRE2_SPTR8)str;
+  if (ov[2] >= 1 && subject[ov[2] - 1] == '[') {
+    if (is_escaped_at((char *)subject, ov[2] - 1)) {
+      return NULL;
+    }
+  }
+  if (subject[ov[3]] == ']') {
+    if (is_escaped_at((char *)subject, ov[3])) {
+      return NULL;
+    }
+  }
+  // url part
+  if (ov[4] >= 1 && subject[ov[4] - 1] == '<') {
+    if (is_escaped_at((char *)subject, ov[4] - 1)) {
+      return NULL;
+    }
+  }
+  if (subject[ov[5]] == '>') {
+    if (is_escaped_at((char *)subject, ov[5])) {
+      return NULL;
+    }
+  }
+  // title part
+  if (ov[6] != PCRE2_UNSET && ov[7] != PCRE2_UNSET) {
+    if (ov[6] >= 1 &&
+        (subject[ov[6] - 1] == '"' || subject[ov[6] - 1] == '\'' ||
+         subject[ov[6] - 1] == '(')) {
+      if (is_escaped_at((char *)subject, ov[6] - 1)) {
+        return NULL;
+      }
+    }
+    if (subject[ov[7]] == '"' || subject[ov[7]] == '\'' ||
+        subject[ov[7]] == ')') {
+      if (is_escaped_at((char *)subject, ov[7])) {
+        return NULL;
+      }
+    }
+  }
+
   char *label = malloc(ov[3] - ov[2] + 1);
   char *url = malloc(ov[5] - ov[4] + 1);
   memcpy(label, str + ov[2], ov[3] - ov[2]);
@@ -366,6 +479,20 @@ MDLinkRegex *parse_simple_addresses(const char *str, size_t *result_count) {
     // [6]..[7]=group3
     PCRE2_SIZE *ov = pcre2_get_ovector_pointer_8(md);
 
+    // Checking escape syntax
+    if (ov[2] >= 1 && subject[ov[2] - 1] == '<') {
+      if (is_escaped_at((char *)subject, ov[2] - 1)) {
+        offset = ov[1];
+        continue; // Skip escaped links
+      }
+    }
+    if (subject[ov[3]] == '>') {
+      if (is_escaped_at((char *)subject, ov[3])) {
+        offset = ov[1];
+        continue; // Skip escaped links
+      }
+    }
+
     // Grow dynamic array
     if (count == capacity) {
       capacity *= 2;
@@ -422,9 +549,7 @@ MDLinkRegex *parse_markdown_images(const char *str, size_t *result_count) {
 
   PCRE2_SPTR8 subject = (PCRE2_SPTR8)str;
   PCRE2_SPTR8 pattern =
-      (PCRE2_SPTR8) "!\\[(.*?)\\]\\((\\S+?)(?:\\s+\"([^\"]+)\")?\\)"
-                    "|\\[!\\[(.*?)\\]\\((\\S+?)(?:\\s+\"([^\"]+)\")?\\)\\]\\(("
-                    "\\S+?)\\)"; // linked image
+      (PCRE2_SPTR8) "!\\[(.*?)\\]\\((\\S+?)(?:\\s+\"([^\"]+)\")?\\)";
 
   int errorcode;
   PCRE2_SIZE erroroffset;
@@ -465,6 +590,56 @@ MDLinkRegex *parse_markdown_images(const char *str, size_t *result_count) {
     // [6]..[7]=group3
     PCRE2_SIZE *ov = pcre2_get_ovector_pointer_8(md);
 
+    // Checking escape syntax
+    // Checking starting `!`
+    if (ov[0] >= 1) {
+      if (is_escaped_at((char *)subject, ov[0])) {
+        offset = ov[1];
+        continue;
+      }
+    }
+    // Checking label part
+    if (ov[2] >= 1 && subject[ov[2] - 1] == '[') {
+      if (is_escaped_at((char *)subject, ov[2] - 1)) {
+        offset = ov[1];
+        continue;
+      }
+    }
+    if (subject[ov[3]] == ']') {
+      if (is_escaped_at((char *)subject, ov[3])) {
+        offset = ov[1];
+        continue;
+      }
+    }
+    // Checking src part
+    if (ov[4] >= 1 && subject[ov[4] - 1] == '(') {
+      if (is_escaped_at((char *)subject, ov[4] - 1)) {
+        offset = ov[1];
+        continue;
+      }
+    }
+    if (subject[ov[5]] == ')') {
+      if (is_escaped_at((char *)subject, ov[5])) {
+        offset = ov[1];
+        continue;
+      }
+    }
+    // Checking title part
+    if (ov[6] != PCRE2_UNSET && ov[7] != PCRE2_UNSET) {
+      if (ov[6] >= 1 && subject[ov[6] - 1] == '"') {
+        if (is_escaped_at((char *)subject, ov[6] - 1)) {
+          offset = ov[1];
+          continue;
+        }
+      }
+      if (subject[ov[7]] == '"') {
+        if (is_escaped_at((char *)subject, ov[7])) {
+          offset = ov[1];
+          continue;
+        }
+      }
+    }
+
     // Grow dynamic array
     if (count == capacity) {
       capacity *= 2;
@@ -481,40 +656,18 @@ MDLinkRegex *parse_markdown_images(const char *str, size_t *result_count) {
     char *src = NULL;
     char *url = NULL;
     char *title = NULL;
-    if (ov[8] != PCRE2_UNSET && ov[9] != PCRE2_UNSET) {
-      // linked image address matched
-      label = malloc(ov[9] - ov[8] + 1);
-      src = malloc(ov[11] - ov[10] + 1);
-      url = malloc(ov[15] - ov[14] + 1);
-      memcpy(label, subject + ov[8], ov[9] - ov[8]);
-      label[ov[9] - ov[8]] = '\0';
-      memcpy(src, subject + ov[10], ov[11] - ov[10]);
-      src[ov[11] - ov[10]] = '\0';
-      memcpy(url, subject + ov[14], ov[15] - ov[14]);
-      url[ov[15] - ov[14]] = '\0';
-      if (ov[12] != PCRE2_UNSET && ov[13] != PCRE2_UNSET) {
-        // Has title
-        title = malloc(ov[13] - ov[12] + 1);
-        memcpy(title, subject + ov[12], ov[13] - ov[12]);
-        title[ov[13] - ov[12]] = '\0';
-      }
-    } else {
-      // general image syntax
-      label = malloc(ov[3] - ov[2] + 1);
-      src = malloc(ov[5] - ov[4] + 1);
-      memcpy(label, subject + ov[2], ov[3] - ov[2]);
-      label[ov[3] - ov[2]] = '\0';
-      memcpy(src, subject + ov[4], ov[5] - ov[4]);
-      src[ov[5] - ov[4]] = '\0';
-      if (ov[6] != PCRE2_UNSET && ov[7] != PCRE2_UNSET) {
-        // Has title
-        title = malloc(ov[7] - ov[6] + 1);
-        memcpy(title, subject + ov[6], ov[7] - ov[6]);
-        title[ov[7] - ov[6]] = '\0';
-      }
+    label = malloc(ov[3] - ov[2] + 1);
+    src = malloc(ov[5] - ov[4] + 1);
+    memcpy(label, subject + ov[2], ov[3] - ov[2]);
+    label[ov[3] - ov[2]] = '\0';
+    memcpy(src, subject + ov[4], ov[5] - ov[4]);
+    src[ov[5] - ov[4]] = '\0';
+    if (ov[6] != PCRE2_UNSET && ov[7] != PCRE2_UNSET) {
+      // Has title
+      title = malloc(ov[7] - ov[6] + 1);
+      memcpy(title, subject + ov[6], ov[7] - ov[6]);
+      title[ov[7] - ov[6]] = '\0';
     }
-
-    // printf("parsed src: %s, url: %s\n", src, url);
 
     arr[count] =
         *new_md_link(label, url, title, src, (int)(ov[0]), (int)(ov[1]));
@@ -658,6 +811,39 @@ void str_to_lower(char *str) {
   }
 }
 
+bool is_escaped_at(const char *str, PCRE2_SIZE pos) {
+  size_t backslashs = 0;
+  while (pos > 0 && str[pos - 1] == '\\') {
+    backslashs++;
+    pos--;
+  }
+
+  return (backslashs % 2) == 1; // Odd number of backslashes means escaped
+}
+
+bool is_escaped(const char *str, char start_target, char end_target,
+                PCRE2_SIZE start, PCRE2_SIZE end) {
+  if (str == NULL || start >= end) {
+    return false;
+  }
+
+  // Check if the target before the start position is escaped
+  if (start >= 1 && str[start - 1] == start_target) {
+    if (is_escaped_at(str, start - 1)) {
+      return true;
+    }
+  }
+
+  // Check if the target after the end position is escaped
+  if (str[end] == end_target) {
+    if (is_escaped_at(str, end)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 #ifdef TEST_MD_REGEX
 int main(void) {
   // Test parse markdown links reference
@@ -787,8 +973,7 @@ int main(void) {
       "Title\")\n";
 
   link_count = 0;
-  links = parse_markdown_links(ref_head, image_subject, &link_count);
-  // links = parse_markdown_images(image_subject, &link_count);
+  links = parse_markdown_images(image_subject, &link_count);
   for (size_t i = 0; i < link_count; i++) {
     printf("Link %zu:\n", i + 1);
     printf("  Label : \"%s\"\n", links[i].label);

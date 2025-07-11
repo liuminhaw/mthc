@@ -25,6 +25,10 @@ emphasis in `inline *code*` should not be emphasized
 
 ``escape `inline` code``
 
+\*\*escape strong** and \_escape em\_
+
+escape \`inline code\`
+
 ### Codeblock
     
     **style** in codeblock should not be emphasized
@@ -32,6 +36,7 @@ emphasis in `inline *code*` should not be emphasized
     ***bold and italic*** style also should not be emphasized
     _snake_case_ should stay as is
     `backticks` should not be emphasized
+    \*escape in codeblock\* should not be influenced
 
 
 

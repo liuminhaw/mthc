@@ -1,7 +1,12 @@
 #ifndef MD_REGEX_H
 #define MD_REGEX_H
 
+#ifndef PCRE2_CODE_UNIT_WIDTH
+#define PCRE2_CODE_UNIT_WIDTH 8
+#endif
+
 #include <string.h>
+#include <pcre2.h>
 #include "file_reader.h"
 
 typedef struct {
@@ -36,5 +41,9 @@ void print_md_links_reference(MDLinkReference *head);
 void free_md_link_reference(MDLinkReference *head);
 
 void str_to_lower(char *str);
+bool is_escaped_at(const char *str, PCRE2_SIZE pos);
+bool is_escaped(const char *str, char start_target, char end_target, PCRE2_SIZE start, PCRE2_SIZE end);
+
+char *escape_char_removal(char *str);
 
 #endif

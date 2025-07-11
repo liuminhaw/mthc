@@ -74,6 +74,7 @@ MDBlock *child_block_parsing(MDLinkReference *link_ref_head, MDBlock *block);
 MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader, MDLinkReference *link_ref_head);
 
 void inline_parsing(MDLinkReference *list, MDBlock *block);
+void escape_char_parsing(char *str);
 char *line_break_parser(const char *line);
 char *emphasis_parser(char *str);
 char *link_parser(MDLinkReference *list, char *str);

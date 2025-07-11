@@ -27,3 +27,7 @@ paragraph
 > Ending quote
 > bye
 
+Bracket in line > is not blockquote
+
+\> Escaping blockquote with \\>
+

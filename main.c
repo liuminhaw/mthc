@@ -78,12 +78,16 @@ void print_html(MDBlock *block) {
     print_html(block->child);
     printf("</%s>\n", block->tag);
   } else if (block->type == NONE) {
+    escape_char_parsing(block->content);
     printf("%s\n", block->content);
   } else if (block->type == SELF_CLOSING) {
     printf("<%s />\n", block->tag);
   } else if (block->type == BLOCK) {
     printf("<%s>\n", block->tag);
     if (block->content != NULL) {
+      if (block->block != CODEBLOCK) {
+        escape_char_parsing(block->content);
+      }
       printf("%s\n", block->content);
     }
     printf("</%s>\n", block->tag);

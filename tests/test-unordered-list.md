@@ -27,4 +27,7 @@ fake newline
 > This is a blockquote
 - test again
 
+\* testing escape
+
+\- testing escape
 

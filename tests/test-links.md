@@ -46,3 +46,10 @@ Testing URL and email address <https://www.markdownguide.org> with <fake@example
 
 Combine [markdown](https://www.markdownguide.org) with email **<fake@example.com>**
 
+My search engine is [Google\](https://www.google.com "The well-known search engine").
+
+My search engine is [Google]\(https://www.google.com).
+
+Testing for reference-style link [Google][1\] [Google] [1].
+
+Testing URL and email address **\<https://www.markdownguide.org>** with <fake@example.com>

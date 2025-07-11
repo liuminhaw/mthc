@@ -154,10 +154,34 @@ void inline_parsing(MDLinkReference *list, MDBlock *block) {
   return;
 }
 
+// escape_char_parsing is used to remove escape '\' from escape characters of
+// the given string. The string is modified in place.
+void escape_char_parsing(char *str) {
+  if (str == NULL) {
+    return;
+  }
+
+  int len = strlen(str);
+  for (int i = 0; i < len - 1; i++) {
+    if (str[i] == '\\') {
+      // Check if the next character is a special character
+      if (strchr("\\`*_{}[]<>()#+-.!|", str[i + 1]) != NULL) {
+        // Shift the rest of the string left by one character
+        memmove(&str[i], &str[i + 1], len - i);
+        len--;
+        str[len] = '\0'; // Null-terminate the string
+      }
+    }
+  }
+
+  // printf("escape_char_parsing result: %s\n", str);
+}
+
 MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
                         PeekReader *reader) {
   char *line = peek_reader_current(reader);
   char *line_ptr = line;
+
   int level = is_heading_syntax(&line_ptr);
   if (!level) {
     level = is_heading_alternate_syntax(reader);
@@ -186,7 +210,6 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
   MDBlock *new_block = NULL;
   while (true) {
     char *line = peek_reader_current(reader);
-    char *next_line = peek_reader_peek(reader, 1);
 
     if (is_empty_or_whitespace(line)) {
       break;
@@ -242,7 +265,6 @@ MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
   MDBlock *new_block = NULL;
   while (true) {
     char *line = peek_reader_current(reader);
-    char *next_line = peek_reader_peek(reader, 1);
 
     if (is_empty_or_whitespace(line)) {
       break;
@@ -270,7 +292,6 @@ MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
   MDBlock *new_block = NULL;
   while (true) {
     char *line = peek_reader_current(reader);
-    char *next_line = peek_reader_peek(reader, 1);
 
     if (is_empty_or_whitespace(line)) {
       break;
@@ -640,53 +661,25 @@ char *image_parser(char *str) {
 
     char *sub_str = NULL;
     char *str_template = NULL;
-    if (image->url) {
-      // Has link on image
-      size_t link_len =
-          strlen(image->label) + strlen(image->url) + strlen(image->src) + 34;
-      if (image->title) {
-        link_len += strlen(image->title) + 9;
-        sub_str = malloc((link_len + 1) * sizeof(char));
-        if (sub_str == NULL) {
-          perror("malloc failed");
-          free_md_links(images, count);
-          return dup_str; // Return original string on error
-        }
-        sprintf(sub_str,
-                "<a href=\"%s\"><img src=\"%s\" title=\"%s\" alt=\"%s\"></a>",
-                image->url, image->src, image->title, image->label);
-      } else {
-        sub_str = malloc((link_len + 1) * sizeof(char));
-        if (sub_str == NULL) {
-          perror("malloc failed");
-          free_md_links(images, count);
-          return dup_str; // Return original string on error
-        }
-        sprintf(sub_str, "<a href=\"%s\"><img src=\"%s\" alt=\"%s\"></a>",
-                image->url, image->src, image->label);
+    size_t link_len = strlen(image->label) + strlen(image->src) + 19;
+    if (image->title) {
+      link_len += strlen(image->title) + 9;
+      sub_str = malloc((link_len + 1) * sizeof(char));
+      if (sub_str == NULL) {
+        perror("malloc failed");
+        free_md_links(images, count);
+        return dup_str; // Return original string on error
       }
+      sprintf(sub_str, "<img src=\"%s\" title=\"%s\" alt=\"%s\">", image->src,
+              image->title, image->label);
     } else {
-      size_t link_len = strlen(image->label) + strlen(image->src) + 19;
-      if (image->title) {
-        link_len += strlen(image->title) + 9;
-        sub_str = malloc((link_len + 1) * sizeof(char));
-        if (sub_str == NULL) {
-          perror("malloc failed");
-          free_md_links(images, count);
-          return dup_str; // Return original string on error
-        }
-        sprintf(sub_str, "<img src=\"%s\" title=\"%s\" alt=\"%s\">", image->src,
-                image->title, image->label);
-      } else {
-        sub_str = malloc((link_len + 1) * sizeof(char));
-        if (sub_str == NULL) {
-          perror("malloc failed");
-          free_md_links(images, count);
-          return dup_str; // Return original string on error
-        }
-        sprintf(sub_str, "<img src=\"%s\" alt=\"%s\">", image->src,
-                image->label);
+      sub_str = malloc((link_len + 1) * sizeof(char));
+      if (sub_str == NULL) {
+        perror("malloc failed");
+        free_md_links(images, count);
+        return dup_str; // Return original string on error
       }
+      sprintf(sub_str, "<img src=\"%s\" alt=\"%s\">", image->src, image->label);
     }
 
     char *tmp_str;

@@ -39,3 +39,6 @@ Alternate test H2
 This should not be a heading
 
 ===
+
+\### Testing escape heading
+\#\#\#\# Another heading test
