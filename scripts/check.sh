@@ -39,7 +39,7 @@ run_test() {
 
     echo "===== Testcase: ${_file_base} ====="
     echo "Generate html from test markdown..."
-    ./mthc "${_input_file}" | sed -n -e '1,/^=== Generate HTML ===$/d' -e 'p' >"${_generated_file}"
+    ./mthc --check "${_input_file}" 1>"${_generated_file}" 2>/dev/null
 
     sed -i 's/[[:blank:]]\+$//' "${_generated_file}"
     sed -i 's/[[:blank:]]\+$//' "${_expected_file}"
@@ -93,7 +93,7 @@ print_result() {
     echo ""
     local _format="${_CYAN}"
     if [[ ${_failed_count} -ne 0 ]]; then
-       _format="${_YELLOW}" 
+        _format="${_YELLOW}"
     fi
     echo "${_format}Total tests: ${#_TEST_RESULTS[@]}"
     echo "Passed tests: ${_passed_count}"

@@ -47,7 +47,7 @@ MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str,
   // free_md_links(tag_links, tag_link_count);
 
   *result_count = total_count;
-  printf("parse markdown links: return combined.\n");
+  fprintf(stderr, "parse markdown links: return combined.\n");
   return combined_links;
 }
 
@@ -780,11 +780,11 @@ MDLinkReference *new_md_link_reference(const char *label, const char *url,
 void print_md_links_reference(MDLinkReference *head) {
   MDLinkReference *current = head;
   while (current) {
-    printf("Label: %s, URL: %s", current->label, current->url);
+    fprintf(stderr, "Label: %s, URL: %s", current->label, current->url);
     if (current->title) {
-      printf(", Title: %s", current->title);
+      fprintf(stderr, ", Title: %s", current->title);
     }
-    printf("\n");
+    fprintf(stderr, "\n");
     current = current->next;
   }
 }

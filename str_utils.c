@@ -121,7 +121,7 @@ char *fullstr_sub_tagpair(char *str, PairType parent_type) {
   while (true) {
     TagPair *pair = NULL;
 
-    printf("parent type: %d, pt code: %d\n", parent_type, PT_CODE);
+    fprintf(stderr, "parent type: %d, pt code: %d\n", parent_type, PT_CODE);
     TagPair *(*fn)(char *str, uint8_t *start_ptr) =
         pair_finder_fn_exec(recorder->str, parent_type);
     if (fn == NULL) {
@@ -262,7 +262,7 @@ TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
         // Found bold syntax
         const uint8_t *peek_ptr = str_move(next, 1);
         const uint8_t *end_ptr = u8_strstr(peek_ptr, (const uint8_t *)"**");
-        while (end_ptr != NULL && end_ptr >= 1 && *(end_ptr - 1) == '\\') {
+        while (end_ptr != NULL && *end_ptr >= 1 && *(end_ptr - 1) == '\\') {
           end_ptr = u8_strstr(str_move(end_ptr, 1), (const uint8_t *)"**");
         }
         if (end_ptr == NULL) {
@@ -282,7 +282,7 @@ TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
       } else {
         // Found italic syntax
         const uint8_t *end_ptr = u8_strstr(next, (const uint8_t *)"*");
-        while (end_ptr != NULL && end_ptr >= 1 && *(end_ptr - 1) == '\\') {
+        while (end_ptr != NULL && *end_ptr >= 1 && *(end_ptr - 1) == '\\') {
           end_ptr = u8_strstr(str_move(end_ptr, 1), (const uint8_t *)"*");
         }
         if (end_ptr == NULL) {
@@ -310,7 +310,7 @@ TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
 
         do {
           end_ptr = u8_strstr(peek_ptr, (const uint8_t *)"__");
-          while (end_ptr != NULL && end_ptr >= 1 && *(end_ptr - 1) == '\\') {
+          while (end_ptr != NULL && *end_ptr >= 1 && *(end_ptr - 1) == '\\') {
             end_ptr = u8_strstr(str_move(end_ptr, 1), (const uint8_t *)"__");
           }
           if (end_ptr == NULL) {
@@ -345,7 +345,7 @@ TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
         const uint8_t *end_ptr = NULL;
         do {
           end_ptr = u8_strstr(next, (const uint8_t *)"_");
-          while (end_ptr != NULL && end_ptr >= 1 && *(end_ptr - 1) == '\\') {
+          while (end_ptr != NULL && *end_ptr >= 1 && *(end_ptr - 1) == '\\') {
             end_ptr = u8_strstr(str_move(end_ptr, 1), (const uint8_t *)"_");
           }
           if (end_ptr == NULL) {
@@ -544,12 +544,12 @@ int main() {
 
   char *result = fullstr_sub_tagpair(test_str, PT_NONE);
   if (result == NULL) {
-    printf("Error processing string.\n");
+    fprintf(stderr, "Error processing string.\n");
     return 1;
   }
 
-  printf("Original: %s\n\n", test_str);
-  printf("Substituted: %s\n", result);
+  fprintf(stderr, "Original: %s\n\n", test_str);
+  fprintf(stderr, "Substituted: %s\n", result);
 
   return 0;
 }
