@@ -5,15 +5,32 @@
 #include "file_reader.h"
 #include "md_regex.h"
 
-void generate_html(MDBlock *block);
+void generate_html(MDBlock *block, char *css_filepath);
 void print_html(MDBlock *block);
 
 int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    fprintf(stderr, "Usage: %s [--check] <markdown_file>\n", argv[0]);
+    return 1;
+  }
+
   bool check_flag = false;
+  char *css_theme = "css/catppuccin-latte.css";
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--check") == 0) {
       check_flag = true;
     }
+    if (strcmp(argv[i], "--dark") == 0) {
+      css_theme = "css/catppuccin-mocha.css";
+    }
+  }
+
+  FILE *css_file = fopen(css_theme, "r");
+  if (!css_file) {
+    fprintf(stderr, "Failed to open CSS file: %s\n", css_theme);
+    return 1;
+  } else {
+    fclose(css_file);
   }
 
   MDBlock *head_block = NULL;
@@ -21,6 +38,10 @@ int main(int argc, char *argv[]) {
   MDBlock *new_block = NULL;
 
   FILE *md_file = fopen(argv[argc - 1], "r");
+  if (!md_file) {
+    fprintf(stderr, "Failed to open file: %s\n", argv[argc - 1]);
+    return 1;
+  }
 
   // Read through the file to get all reference links
   PeekReader *reader = new_peek_reader_from_file(md_file, DEFAULT_PEEK_COUNT);
@@ -70,18 +91,18 @@ int main(int argc, char *argv[]) {
   if (check_flag) {
     print_html(head_block);
   } else {
-    generate_html(head_block);
+    generate_html(head_block, css_theme);
   }
 
   return 0;
 }
 
-void generate_html(MDBlock *block) {
+void generate_html(MDBlock *block, char *css_filepath) {
   if (block == NULL) {
     return;
   }
 
-  FILE *css_file = fopen("css/catppuccin-mocha.css", "r");
+  FILE *css_file = fopen(css_filepath, "r");
   PeekReader *reader = new_peek_reader_from_file(css_file, DEFAULT_PEEK_COUNT);
   if (!reader) {
     fprintf(stderr, "Failed to create peek reader for CSS\n");
@@ -95,7 +116,6 @@ void generate_html(MDBlock *block) {
   printf("<title>Placeholder title</title>\n");
   printf("<meta name=\"viewport\" content=\"width=device-width, "
          "initial-scale=1.0\">\n");
-  // printf("<link rel=\"stylesheet\" href=\"css/catppuccin-mocha.css\">\n");
   printf("<style>\n");
   do {
     char *line = peek_reader_current(reader);
@@ -107,11 +127,15 @@ void generate_html(MDBlock *block) {
     }
   } while (reader->count > 0);
   printf("</style>\n");
+  printf("<script "
+         "src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/"
+         "highlight.min.js\"></script>");
   printf("</head>\n");
   printf("<body>\n");
   printf("<div class=\"container\">\n");
   print_html(block);
   printf("</div>\n");
+  printf("<script>hljs.highlightAll();</script>\n");
   printf("</body>\n");
 }
 
@@ -140,7 +164,13 @@ void print_html(MDBlock *block) {
       if (block->block != CODEBLOCK) {
         escape_char_parsing(block->content);
       }
+      if (block->block == CODEBLOCK) {
+        printf("<code>\n");
+      }
       printf("%s\n", block->content);
+      if (block->block == CODEBLOCK) {
+        printf("</code>\n");
+      }
     }
     printf("</%s>\n", block->tag);
   } else {
