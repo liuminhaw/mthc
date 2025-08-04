@@ -15,6 +15,8 @@ typedef struct {
   uint8_t *ptr; // Dynamic pointer in the str string
 } StrRecorder;
 
+void free_str_recorder(StrRecorder *recorder);
+
 typedef struct {
   PairType type;
   char *str;
@@ -31,7 +33,7 @@ TagPair *find_code_tag_pair(char *str, uint8_t *start_ptr);
 void free_tag_pair(TagPair *pair);
 void update_tag_pair_str(TagPair *pair, char *sub_str);
 
-char *fullstr_sub_tagpair(char *str, PairType parent_pair);
+char *fullstr_sub_tagpair(char *str, PairType parent_pair, bool *sub);
 void str_sub_tagpair(TagPair *pair, StrRecorder *recorder);
 
 bool run_pair_finder(PairType type, int check_count, PairType check_types[]);

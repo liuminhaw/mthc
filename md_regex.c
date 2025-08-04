@@ -43,8 +43,9 @@ MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str,
   memcpy(combined_links + general_link_count + tag_link_count, simple_addresses,
          simple_address_count * sizeof(MDLinkRegex));
 
-  // free_md_links(general_links, general_link_count);
-  // free_md_links(tag_links, tag_link_count);
+  free(general_links);
+  free(simple_addresses);
+  free(tag_links);
 
   *result_count = total_count;
   fprintf(stderr, "parse markdown links: return combined.\n");
@@ -170,7 +171,10 @@ MDLinkRegex *parse_markdown_general_links(const char *str,
       title[ov[7] - ov[6]] = '\0';
     }
 
-    arr[count] = *new_md_link(label, url, title, NULL, (int)ov[0], (int)ov[1]);
+    MDLinkRegex *link =
+        new_md_link(label, url, title, NULL, (int)ov[0], (int)ov[1]);
+    arr[count] = *link;
+    free(link);
 
     count++;
 
@@ -285,8 +289,10 @@ MDLinkRegex *parse_markdown_links_tag(MDLinkReference *head, const char *str,
 
     MDLinkReference *ref = find_link_reference(head, tag);
     if (ref != NULL) {
-      arr[count] = *new_md_link(label, ref->url, ref->title, NULL, (int)ov[0],
-                                (int)ov[1]);
+      MDLinkRegex *link = new_md_link(label, ref->url, ref->title, NULL,
+                                      (int)ov[0], (int)ov[1]);
+      arr[count] = *link;
+      free(link);
 
       count++;
     }
@@ -524,8 +530,10 @@ MDLinkRegex *parse_simple_addresses(const char *str, size_t *result_count) {
     memcpy(label, subject + ov[2], ov[3] - ov[2]);
     label[ov[3] - ov[2]] = '\0';
 
-    arr[count] = *new_md_link(label, url, title, NULL, (int)(ov[2] - 1),
-                              (int)(ov[3] + 1));
+    MDLinkRegex *link = new_md_link(label, url, title, NULL, (int)(ov[2] - 1),
+                                    (int)(ov[3] + 1));
+    arr[count] = *link;
+    free(link);
 
     count++;
 
@@ -669,13 +677,17 @@ MDLinkRegex *parse_markdown_images(const char *str, size_t *result_count) {
       title[ov[7] - ov[6]] = '\0';
     }
 
-    arr[count] =
-        *new_md_link(label, url, title, src, (int)(ov[0]), (int)(ov[1]));
+    MDLinkRegex *link =
+        new_md_link(label, url, title, src, (int)(ov[0]), (int)(ov[1]));
+    arr[count] = *link;
+    free(link);
 
     count++;
 
     free(label);
     free(url);
+    free(title);
+    free(src);
 
     offset = ov[1];
   }
@@ -754,10 +766,25 @@ void free_md_links(MDLinkRegex *links, size_t count) {
   }
 
   for (size_t i = 0; i < count; i++) {
-    free(links[i].label);
-    free(links[i].url);
-    free(links[i].title);
+    fprintf(stderr, "freeing link %zu\n", i);
+    fprintf(stderr, "label\n");
+    if (links[i].label) {
+      free(links[i].label);
+    }
+    fprintf(stderr, "url\n");
+    if (links[i].url) {
+      free(links[i].url);
+    }
+    fprintf(stderr, "title\n");
+    if (links[i].title) {
+      free(links[i].title);
+    }
+    fprintf(stderr, "src\n");
+    if (links[i].src) {
+      free(links[i].src);
+    }
   }
+  fprintf(stderr, "free links\n");
   free(links);
 }
 

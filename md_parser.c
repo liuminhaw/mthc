@@ -46,6 +46,7 @@ MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
                                MDLinkReference *link_ref_head) {
   MDBlock *new_block = list_item_parser(prnt_block, curr_block, reader);
   if (new_block != NULL) {
+    inline_parsing(link_ref_head, new_block);
     // printf("list item block content: %s\n", new_block->content);
     if (strchr(new_block->content, '\n') != NULL) {
       fprintf(stderr, "parse list item child block\n");
@@ -65,7 +66,9 @@ void child_parsing_exec(MDLinkReference *head, MDBlock *block) {
     case BLOCKQUOTE:
     case ORDERED_LIST:
     case UNORDERED_LIST:
-      block->child = child_block_parsing(head, block);
+      if (block->child == NULL) {
+        block->child = child_block_parsing(head, block);
+      }
       break;
     default:
       break;
@@ -109,6 +112,7 @@ MDBlock *child_block_parsing(MDLinkReference *link_ref_head,
       }
     }
   } while (reader->count > 0);
+  free_peek_reader(reader);
 
   child_parsing_exec(link_ref_head, tail_block);
   inline_parsing(link_ref_head, tail_block);
@@ -129,8 +133,9 @@ void inline_parsing(MDLinkReference *list, MDBlock *block) {
   fprintf(stderr, "inline origin content: %s\n", content);
   char *emphasis_content = emphasis_parser(content);
   fprintf(stderr, "inline emphasis content: %s\n", emphasis_content);
-  if (emphasis_content != NULL && emphasis_content != content) {
-    free(content);
+  if (emphasis_content != NULL) {
+    // free(NULL) is safe in C and does nothing
+    free(block->content);
     block->content = emphasis_content;
     fprintf(stderr, "replace content\n");
   }
@@ -138,14 +143,18 @@ void inline_parsing(MDLinkReference *list, MDBlock *block) {
   char *image_content = image_parser(block->content);
   fprintf(stderr, "inline image content: %s\n", image_content);
   if (image_content != NULL && image_content != block->content) {
-    free(block->content);
+    if (block->content) {
+      free(block->content);
+    }
     block->content = image_content;
   }
 
   char *link_content = link_parser(list, block->content);
   fprintf(stderr, "inline link content: %s\n", link_content);
   if (link_content != NULL && link_content != block->content) {
-    free(block->content);
+    if (block->content) {
+      free(block->content);
+    }
     block->content = link_content;
   }
 
@@ -181,6 +190,7 @@ MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
                         PeekReader *reader) {
   char *line = peek_reader_current(reader);
   char *line_ptr = line;
+  int advanced_count = 1;
 
   int level = is_heading_syntax(&line_ptr);
   if (!level) {
@@ -188,8 +198,7 @@ MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
     if (!level) {
       return NULL;
     }
-    line_ptr = line;
-    peek_reader_advance(reader);
+    advanced_count++;
   }
 
   char *tag = malloc(3);
@@ -200,8 +209,14 @@ MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
   sprintf(tag, "h%d", level);
 
   MDBlock *new_block = new_mdblock(line_ptr, tag, level, BLOCK, 0);
+  free(tag);
 
-  peek_reader_advance(reader);
+  for (int i = 0; i < advanced_count; i++) {
+    if (!peek_reader_advance(reader)) {
+      break; // Exit if no more lines to read
+    }
+  }
+
   return new_block;
 }
 
@@ -217,6 +232,7 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
     if (new_block != NULL) {
       mdblock_content_update(new_block, line, "%s %s");
     } else {
+      fprintf(stderr, "new paragraph block: %s\n", line);
       new_block = new_mdblock(line, "p", PARAGRAPH, BLOCK, 0);
     }
 
@@ -482,19 +498,21 @@ MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block,
 MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
                      TagType type, int content_newline) {
   MDBlock *block = malloc(sizeof(MDBlock));
+  fprintf(stderr, "[ALLOC] new_mdblock at %p, content: %s\n", (void *)block,
+          content);
   if (!block) {
     perror("malloc failed");
     return NULL;
   }
 
   char *parsed_line = line_break_parser(content);
-  if (parsed_line == NULL) {
-    parsed_line = content;
+  if (parsed_line != NULL) {
+    content = parsed_line;
   }
 
   char *b_content = NULL;
-  if (parsed_line != NULL) {
-    size_t len = strlen(parsed_line);
+  if (content != NULL) {
+    size_t len = strlen(content);
     if (content_newline) {
       len += 2; // +1 for '\n' and +1 for '\0'
     } else {
@@ -507,14 +525,15 @@ MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
       return NULL;
     }
     if (content_newline) {
-      sprintf(b_content, "%s\n", parsed_line);
+      sprintf(b_content, "%s\n", content);
     } else {
-      strcpy(b_content, parsed_line);
+      strcpy(b_content, content);
     }
   }
+  free(parsed_line);
 
   block->content = b_content;
-  block->tag = html_tag;
+  block->tag = html_tag ? strdup(html_tag) : NULL;
   block->block = block_tag;
   block->type = type;
   block->child = NULL;
@@ -563,7 +582,8 @@ char *emphasis_parser(char *str) {
     return NULL;
   }
 
-  char *result = fullstr_sub_tagpair(str, PT_NONE);
+  bool sub = false;
+  char *result = fullstr_sub_tagpair(str, PT_NONE, &sub);
   return result;
 }
 
@@ -576,6 +596,7 @@ char *link_parser(MDLinkReference *list, char *str) {
   MDLinkRegex *links = parse_markdown_links(list, str, &count);
 
   if (links == NULL || count == 0) {
+    free_md_links(links, count);
     return str; // No links found, return original string
   }
 
@@ -635,6 +656,7 @@ char *link_parser(MDLinkReference *list, char *str) {
     free(sub_str);
     dup_str = tmp_str; // Update str to the new string with link replaced
   }
+  free_md_links(links, count);
 
   return dup_str;
 }
@@ -648,6 +670,7 @@ char *image_parser(char *str) {
   MDLinkRegex *images = parse_markdown_images(str, &count);
 
   if (images == NULL || count == 0) {
+    free_md_links(images, count);
     return str; // No images found, return original string
   }
 
@@ -705,6 +728,7 @@ char *image_parser(char *str) {
     free(sub_str);
     dup_str = tmp_str; // Update str to the new string with image replaced
   }
+  free_md_links(images, count);
 
   return dup_str;
 }
@@ -921,6 +945,22 @@ void mdblock_content_update(MDBlock *block, char *content, char *formatter) {
   sprintf(paragraph, formatter, block->content, content);
   free(block->content);
   block->content = paragraph;
+}
+
+void free_mdblocks(MDBlock *block) {
+  if (block == NULL) {
+    return;
+  }
+
+  fprintf(stderr, "[FREE] md_block at %p, content: %s\n", (void *)block,
+          block->content);
+  free(block->content);
+  if (block->tag) {
+    free(block->tag);
+  }
+  free_mdblocks(block->child);
+  free_mdblocks(block->next);
+  free(block);
 }
 
 char *blocktag_to_string(BlockTag block) {

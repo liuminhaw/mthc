@@ -56,3 +56,6 @@ mthc
 
 # Testing excutable
 *_test
+
+# Build records
+.build_flags

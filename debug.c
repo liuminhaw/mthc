@@ -63,6 +63,9 @@ void traverse_block(MDBlock *block) {
   if (block->child != NULL) {
     fprintf(stderr, "traveling to child block\n");
   }
+
+  free(sub_content);
+
   traverse_block(block->child);
   // printf("traveling to next block\n");
   traverse_block(block->next);

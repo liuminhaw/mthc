@@ -109,14 +109,15 @@ char *str_copy(const char *str) {
 // fullstr_sub_tagpair recursively substitutes tag pairs in the input string.
 // If there is nothing substituted, it returns the original string.
 // Otherwise, a new string is returned with the substitutions made.
-char *fullstr_sub_tagpair(char *str, PairType parent_type) {
+char *fullstr_sub_tagpair(char *str, PairType parent_type, bool *sub) {
   StrRecorder *recorder = malloc(sizeof(StrRecorder));
   if (recorder == NULL) {
     perror("malloc failed");
     return NULL;
   }
-  recorder->str = str;
-  recorder->ptr = (uint8_t *)str; // Pointer to the start of the string
+  recorder->str = strdup(str);
+  recorder->ptr =
+      (uint8_t *)(recorder->str); // Pointer to the start of the string
 
   while (true) {
     TagPair *pair = NULL;
@@ -125,8 +126,8 @@ char *fullstr_sub_tagpair(char *str, PairType parent_type) {
     TagPair *(*fn)(char *str, uint8_t *start_ptr) =
         pair_finder_fn_exec(recorder->str, parent_type);
     if (fn == NULL) {
-      char *result = recorder->str;
-      free(recorder);
+      char *result = strdup(recorder->str);
+      free_str_recorder(recorder);
       return result;
     }
     pair = fn(recorder->str, recorder->ptr);
@@ -142,8 +143,8 @@ char *fullstr_sub_tagpair(char *str, PairType parent_type) {
     if (pair == NULL) {
       // printf("No tag pair found, returning original string: %s\n",
       // recorder->str);
-      char *result = recorder->str;
-      free(recorder);
+      char *result = strdup(recorder->str);
+      free_str_recorder(recorder);
       return result;
     }
 
@@ -153,7 +154,7 @@ char *fullstr_sub_tagpair(char *str, PairType parent_type) {
     if (child_str == NULL) {
       perror("malloc failed");
       free_tag_pair(pair);
-      free(recorder);
+      free_str_recorder(recorder);
       return NULL;
     }
 
@@ -161,14 +162,15 @@ char *fullstr_sub_tagpair(char *str, PairType parent_type) {
             pair->end - pair->start - (2 * strlen(pair->syntax)));
     child_str[child_str_len] = '\0'; // Null-terminate the string
 
-    char *substituted = fullstr_sub_tagpair(child_str, pair->type);
-    if (substituted != child_str) {
-      // Update pair fields with new substituted string
+    char *substituted = fullstr_sub_tagpair(child_str, pair->type, sub);
+    if (sub) {
       update_tag_pair_str(pair, substituted);
     }
+    free(substituted);
     free(child_str);
 
     str_sub_tagpair(pair, recorder);
+    *sub = true;
     free_tag_pair(pair);
   }
 }
@@ -224,6 +226,9 @@ void str_sub_tagpair(TagPair *pair, StrRecorder *recorder) {
   free(open_tag);
   free(close_tag);
 
+  if (recorder->str != NULL) {
+    free(recorder->str);
+  }
   recorder->str = result;
   recorder->ptr = (uint8_t *)result + (pair->end - pair->str) +
                   (prefix_len + suffix_len - (2 * syntax_len));
@@ -480,15 +485,32 @@ TagPair *(*pair_finder_fn_exec(char *str,
   if (emphasis_pair == NULL && code_pair == NULL) {
     return NULL;
   } else if (emphasis_pair == NULL) {
+    free_tag_pair(code_pair);
     return find_code_tag_pair;
   } else if (code_pair == NULL) {
+    free_tag_pair(emphasis_pair);
     return find_emphasis_pair;
   } else if (emphasis_pair->start - emphasis_pair->str <
              code_pair->start - code_pair->str) {
+    free_tag_pair(code_pair);
+    free_tag_pair(emphasis_pair);
     return find_emphasis_pair;
   } else {
+    free_tag_pair(code_pair);
+    free_tag_pair(emphasis_pair);
     return find_code_tag_pair;
   }
+}
+
+void free_str_recorder(StrRecorder *recorder) {
+  if (recorder == NULL) {
+    return;
+  }
+
+  if (recorder->str != NULL) {
+    free(recorder->str);
+  }
+  free(recorder);
 }
 
 bool str_peek(const uint8_t *str, int offset, ucs4_t *result) {

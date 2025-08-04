@@ -31,3 +31,17 @@ fake newline
 
 \- testing escape
 
+- item 1 with `inline code`
+- item 2 with `inline code`
+- item 3 with `inline code`
+    - indented item 1 with `inline code`
+    - indented item 2 with `inline code`
+- item 4 with `inline code`
+
+- item 1 with **emphasis test**
+- item 2 with **emphasis test**
+- item 3 with **emphasis test**
+    - indented item 1 with **emphasis test**
+    - indented item 2 with **emphasis test**
+- item 4 with **emphasis test**
+

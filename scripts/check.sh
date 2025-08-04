@@ -5,7 +5,7 @@ _TEST_DIR="tests"
 # Result will be in the format of "test_name|status|generated_file|expected_file"
 _TESTS_RESULTS=()
 
-# tput color settings
+# output color settings
 _RED=$(tput setaf 1)
 _GREEN=$(tput setaf 2)
 _YELLOW=$(tput setaf 3)
@@ -106,7 +106,7 @@ main() {
     fi
 
     echo "Compile mthc program..."
-    if ! make mthc; then
+    if ! make; then
         echo "${_RED}Failed to compile mthc program.${_RESET}"
         exit 1
     fi

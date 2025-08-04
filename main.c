@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   MDLinkReference *link_ref_head = gen_markdown_link_reference_list(reader);
+  free_peek_reader(reader);
 
   rewind(md_file);
   reader = new_peek_reader_from_file(md_file, DEFAULT_PEEK_COUNT);
@@ -77,10 +78,13 @@ int main(int argc, char *argv[]) {
       }
     }
   } while (reader->count > 0);
+
   fclose(md_file);
 
   child_parsing_exec(link_ref_head, tail_block);
   inline_parsing(link_ref_head, tail_block);
+
+  free_md_link_reference(link_ref_head);
 
   // Traverse block list
   fprintf(stderr, "\n=== Traverse block list ===\n");
@@ -93,6 +97,9 @@ int main(int argc, char *argv[]) {
   } else {
     generate_html(head_block, css_theme);
   }
+
+  free_mdblocks(head_block);
+  free_peek_reader(reader);
 
   return 0;
 }
@@ -137,6 +144,9 @@ void generate_html(MDBlock *block, char *css_filepath) {
   printf("</div>\n");
   printf("<script>hljs.highlightAll();</script>\n");
   printf("</body>\n");
+
+  free_peek_reader(reader);
+  fclose(css_file);
 }
 
 void print_html(MDBlock *block) {

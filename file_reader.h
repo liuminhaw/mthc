@@ -32,7 +32,7 @@ typedef struct {
   } source;
 
   char *buffer[MAX_PEEK + 1]; // circular buffer
-  int current;
+  int current; //index of current line
   int count; // number of valid lines in buffer
   int total; // total capacity (PEEK + 1)
 } PeekReader;
@@ -46,6 +46,7 @@ char *peek_reader_current(PeekReader *reader);
 char *peek_reader_peek(PeekReader *reader, int i);
 // Advances to next line, returns 1 if successful, 0 on EOF
 int peek_reader_advance(PeekReader *reader);
+void free_peek_reader(PeekReader *reader);
 
 #endif
 

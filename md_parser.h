@@ -57,6 +57,7 @@ typedef struct {
 
 MDBlock* new_mdblock(char *content, char *html_tag, BlockTag block_tag, 
                      TagType type, int content_newline);
+void free_mdblocks(MDBlock *block);
 
 MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *block, PeekReader *reader, MDLinkReference *link_ref_head);
 MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);

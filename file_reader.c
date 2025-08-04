@@ -163,6 +163,8 @@ PeekReader *new_peek_reader_from_file(FILE *fp, int peek_count) {
     reader->buffer[i] = read_line(reader->source.fp, true);
     if (reader->buffer[i]) {
       reader->count++;
+    } else {
+      break;
     }
   }
 
@@ -207,8 +209,8 @@ char *peek_reader_current(PeekReader *reader) {
 }
 
 char *peek_reader_peek(PeekReader *reader, int i) {
-  if (i < 0 || i >= reader->total) {
-    return NULL;
+  if (i < 0 || i >= reader->count) {
+    return NULL; // Return NULL if i is out of bounds
   }
 
   int idx = (reader->current + i) % reader->total;
@@ -217,27 +219,50 @@ char *peek_reader_peek(PeekReader *reader, int i) {
 }
 
 int peek_reader_advance(PeekReader *reader) {
-  int pos = reader->current;
+  if (!reader || reader->count == 0) {
+    return 0;
+  }
 
+  reader->current = (reader->current + 1) % reader->total;
+
+  int refill_idx = (reader->current + reader->count - 1) % reader->total;
   if (reader->source_type == PEEK_SOURCE_FILE) {
-    reader->buffer[pos] = read_line(reader->source.fp, true);
-    if (!reader->buffer[pos]) {
+    free(reader->buffer[refill_idx]);
+    char *line = read_line(reader->source.fp, true);
+    reader->buffer[refill_idx] = line;
+    if (!line) {
       reader->count--;
     }
   } else if (reader->source_type == PEEK_SOURCE_STRING_ARRAY) {
     if (reader->source.str_array.line_idx <
         reader->source.str_array.total_lines) {
-      reader->buffer[pos] =
+      reader->buffer[refill_idx] =
           reader->source.str_array.lines[reader->source.str_array.line_idx];
       reader->source.str_array.line_idx++;
     } else {
-      reader->buffer[pos] = NULL;
+      reader->buffer[refill_idx] = NULL; // No more lines to read
       reader->count--;
     }
   }
 
-  // move current forward
-  reader->current = (reader->current + 1) % reader->total;
-
   return reader->count > 0;
+}
+
+void free_peek_reader(PeekReader *reader) {
+  if (!reader) {
+    return;
+  }
+
+  if (reader->source_type == PEEK_SOURCE_FILE) {
+    for (int i = 0; i < reader->total; i++) {
+      free(reader->buffer[i]);
+    }
+  } else if (reader->source_type == PEEK_SOURCE_STRING_ARRAY) {
+    for (int i = 0; i < reader->source.str_array.total_lines; i++) {
+      free(reader->source.str_array.lines[i]);
+    }
+    free(reader->source.str_array.lines);
+  }
+
+  free(reader);
 }
