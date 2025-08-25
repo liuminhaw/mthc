@@ -70,7 +70,7 @@ main() {
     fi
 
     echo "Compile mthc program with memory leak check..."
-    if ! make valgrind; then
+    if ! make debug; then
         echo "Failed to compile mthc program with memory leak check."
         exit 1
     fi
