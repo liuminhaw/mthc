@@ -4,9 +4,14 @@
 #include "debug.h"
 #include "file_reader.h"
 #include "md_regex.h"
+#include "style_css.h"
 
-void generate_html(MDBlock *block, char *css_filepath);
+// void generate_html(MDBlock *block, char *css_filepath);
+void generate_html(MDBlock *block, const unsigned char *css_theme,
+                   unsigned int css_theme_len);
 void print_html(MDBlock *block);
+// void write_css(int fd, const unsigned char *p, size_t n);
+int write_css(FILE *fp, const unsigned char *p, size_t n);
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
@@ -15,23 +20,27 @@ int main(int argc, char *argv[]) {
   }
 
   bool check_flag = false;
-  char *css_theme = "css/catppuccin-latte.css";
+  // char *css_theme = "css/catppuccin-latte.css";
+  const unsigned char *css_theme = default_light_css;
+  unsigned int css_theme_len = default_light_css_len;
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--check") == 0) {
       check_flag = true;
     }
     if (strcmp(argv[i], "--dark") == 0) {
-      css_theme = "css/catppuccin-mocha.css";
+      css_theme = default_dark_css;
+      css_theme_len = default_light_css_len;
+      // css_theme = "css/catppuccin-mocha.css";
     }
   }
 
-  FILE *css_file = fopen(css_theme, "r");
-  if (!css_file) {
-    fprintf(stderr, "Failed to open CSS file: %s\n", css_theme);
-    return 1;
-  } else {
-    fclose(css_file);
-  }
+  // FILE *css_file = fopen(css_theme, "r");
+  // if (!css_file) {
+  //   fprintf(stderr, "Failed to open CSS file: %s\n", css_theme);
+  //   return 1;
+  // } else {
+  //   fclose(css_file);
+  // }
 
   MDBlock *head_block = NULL;
   MDBlock *tail_block = head_block;
@@ -95,7 +104,7 @@ int main(int argc, char *argv[]) {
   if (check_flag) {
     print_html(head_block);
   } else {
-    generate_html(head_block, css_theme);
+    generate_html(head_block, css_theme, css_theme_len);
   }
 
   free_mdblocks(head_block);
@@ -104,17 +113,19 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-void generate_html(MDBlock *block, char *css_filepath) {
+// void generate_html(MDBlock *block, char *css_filepath) {
+void generate_html(MDBlock *block, const unsigned char *css_theme,
+                   unsigned int css_theme_len) {
   if (block == NULL) {
     return;
   }
 
-  FILE *css_file = fopen(css_filepath, "r");
-  PeekReader *reader = new_peek_reader_from_file(css_file, DEFAULT_PEEK_COUNT);
-  if (!reader) {
-    fprintf(stderr, "Failed to create peek reader for CSS\n");
-    return;
-  }
+  // FILE *css_file = fopen(css_filepath, "r");
+  // PeekReader *reader = new_peek_reader_from_file(css_file,
+  // DEFAULT_PEEK_COUNT); if (!reader) {
+  //   fprintf(stderr, "Failed to create peek reader for CSS\n");
+  //   return;
+  // }
 
   printf("<!DOCTYPE html>\n");
   printf("<html>\n");
@@ -124,15 +135,17 @@ void generate_html(MDBlock *block, char *css_filepath) {
   printf("<meta name=\"viewport\" content=\"width=device-width, "
          "initial-scale=1.0\">\n");
   printf("<style>\n");
-  do {
-    char *line = peek_reader_current(reader);
-    if (line != NULL) {
-      printf("%s\n", line);
-    }
-    if (!peek_reader_advance(reader)) {
-      break; // Exit loop if no more lines to read
-    }
-  } while (reader->count > 0);
+  // write_css(fileno(stdout), css_theme, (size_t)css_theme_len);
+  write_css(stdout, css_theme, (size_t)css_theme_len);
+  // do {
+  //   char *line = peek_reader_current(reader);
+  //   if (line != NULL) {
+  //     printf("%s\n", line);
+  //   }
+  //   if (!peek_reader_advance(reader)) {
+  //     break; // Exit loop if no more lines to read
+  //   }
+  // } while (reader->count > 0);
   printf("</style>\n");
   printf("<script "
          "src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/"
@@ -145,8 +158,8 @@ void generate_html(MDBlock *block, char *css_filepath) {
   printf("<script>hljs.highlightAll();</script>\n");
   printf("</body>\n");
 
-  free_peek_reader(reader);
-  fclose(css_file);
+  // free_peek_reader(reader);
+  // fclose(css_file);
 }
 
 void print_html(MDBlock *block) {
@@ -188,4 +201,18 @@ void print_html(MDBlock *block) {
   }
 
   print_html(block->next);
+}
+
+int write_css(FILE *fp, const unsigned char *p, size_t n) {
+  size_t remaining = n;
+
+  while (remaining > 0) {
+    size_t written = fwrite(p, 1, remaining, fp);
+    if (written == 0) {
+      return -1;
+    }
+    p += written;
+    remaining -= written;
+  }
+  return 0;
 }
