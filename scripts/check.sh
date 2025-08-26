@@ -39,7 +39,7 @@ run_test() {
 
     echo "===== Testcase: ${_file_base} ====="
     echo "Generate html from test markdown..."
-    ./mthc --check "${_input_file}" 1>"${_generated_file}" 2>/dev/null
+    ./mthc --test "${_input_file}" 1>"${_generated_file}" 2>/dev/null
 
     sed -i 's/[[:blank:]]\+$//' "${_generated_file}"
     sed -i 's/[[:blank:]]\+$//' "${_expected_file}"

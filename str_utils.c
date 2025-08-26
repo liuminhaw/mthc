@@ -6,6 +6,7 @@
 #include <unistr.h>
 // #include <unitypes.h>
 
+#include "logger.h"
 #include "str_utils.h"
 
 TagPair *new_tag_pair(PairType type, char *str, char *syntax, int start,
@@ -122,7 +123,7 @@ char *fullstr_sub_tagpair(char *str, PairType parent_type, bool *sub) {
   while (true) {
     TagPair *pair = NULL;
 
-    fprintf(stderr, "parent type: %d, pt code: %d\n", parent_type, PT_CODE);
+    LOGF("parent type: %d, pt code: %d\n", parent_type, PT_CODE);
     TagPair *(*fn)(char *str, uint8_t *start_ptr) =
         pair_finder_fn_exec(recorder->str, parent_type);
     if (fn == NULL) {

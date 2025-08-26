@@ -48,7 +48,7 @@ MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str,
   free(tag_links);
 
   *result_count = total_count;
-  fprintf(stderr, "parse markdown links: return combined.\n");
+  LOGF("parse markdown links: return combined.\n");
   return combined_links;
 }
 
@@ -73,8 +73,7 @@ MDLinkRegex *parse_markdown_general_links(const char *str,
   if (!re) {
     PCRE2_UCHAR8 buffer[256];
     pcre2_get_error_message_8(errorcode, buffer, sizeof(buffer));
-    fprintf(stderr, "PCRE2 compilation failed at offset %zu: %s\n", erroroffset,
-            buffer);
+    LOGF("PCRE2 compilation failed at offset %zu: %s\n", erroroffset, buffer);
     return NULL;
   }
 
@@ -213,8 +212,7 @@ MDLinkRegex *parse_markdown_links_tag(MDLinkReference *head, const char *str,
   if (!re) {
     PCRE2_UCHAR8 buffer[256];
     pcre2_get_error_message_8(errorcode, buffer, sizeof(buffer));
-    fprintf(stderr, "PCRE2 compilation failed at offset %zu: %s\n", erroroffset,
-            buffer);
+    LOGF("PCRE2 compilation failed at offset %zu: %s\n", erroroffset, buffer);
     return NULL;
   }
   /* Prepare match data block */
@@ -343,8 +341,7 @@ MDLinkReference *parse_markdown_links_reference(char *str) {
   if (!re) {
     PCRE2_UCHAR8 buffer[256];
     pcre2_get_error_message_8(errorcode, buffer, sizeof(buffer));
-    fprintf(stderr, "PCRE2 compilation failed at offset %zu: %s\n", erroroffset,
-            buffer);
+    LOGF("PCRE2 compilation failed at offset %zu: %s\n", erroroffset, buffer);
     return NULL;
   }
 
@@ -456,8 +453,7 @@ MDLinkRegex *parse_simple_addresses(const char *str, size_t *result_count) {
   if (!re) {
     PCRE2_UCHAR8 buffer[256];
     pcre2_get_error_message_8(errorcode, buffer, sizeof(buffer));
-    fprintf(stderr, "PCRE2 compilation failed at offset %zu: %s\n", erroroffset,
-            buffer);
+    LOGF("PCRE2 compilation failed at offset %zu: %s\n", erroroffset, buffer);
     return NULL;
   }
 
@@ -569,8 +565,7 @@ MDLinkRegex *parse_markdown_images(const char *str, size_t *result_count) {
   if (!re) {
     PCRE2_UCHAR8 buffer[256];
     pcre2_get_error_message_8(errorcode, buffer, sizeof(buffer));
-    fprintf(stderr, "PCRE2 compilation failed at offset %zu: %s\n", erroroffset,
-            buffer);
+    LOGF("PCRE2 compilation failed at offset %zu: %s\n", erroroffset, buffer);
     return NULL;
   }
 
@@ -766,25 +761,25 @@ void free_md_links(MDLinkRegex *links, size_t count) {
   }
 
   for (size_t i = 0; i < count; i++) {
-    fprintf(stderr, "freeing link %zu\n", i);
-    fprintf(stderr, "label\n");
+    LOGF("freeing link %zu\n", i);
+    LOGF("label\n");
     if (links[i].label) {
       free(links[i].label);
     }
-    fprintf(stderr, "url\n");
+    LOGF("url\n");
     if (links[i].url) {
       free(links[i].url);
     }
-    fprintf(stderr, "title\n");
+    LOGF("title\n");
     if (links[i].title) {
       free(links[i].title);
     }
-    fprintf(stderr, "src\n");
+    LOGF("src\n");
     if (links[i].src) {
       free(links[i].src);
     }
   }
-  fprintf(stderr, "free links\n");
+  LOGF("free links\n");
   free(links);
 }
 
@@ -807,11 +802,11 @@ MDLinkReference *new_md_link_reference(const char *label, const char *url,
 void print_md_links_reference(MDLinkReference *head) {
   MDLinkReference *current = head;
   while (current) {
-    fprintf(stderr, "Label: %s, URL: %s", current->label, current->url);
+    LOGF("Label: %s, URL: %s", current->label, current->url);
     if (current->title) {
-      fprintf(stderr, ", Title: %s", current->title);
+      LOGF(", Title: %s", current->title);
     }
-    fprintf(stderr, "\n");
+    LOGF("\n");
     current = current->next;
   }
 }

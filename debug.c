@@ -55,13 +55,13 @@ void traverse_block(MDBlock *block) {
   }
 
   if (block->block == BLOCKQUOTE) {
-    fprintf(stderr, "block: %s, type: %s, tag: %s\n", btag, ttype, block->tag);
+    LOGF("block: %s, type: %s, tag: %s\n", btag, ttype, block->tag);
   } else {
-    fprintf(stderr, "block: %s, type: %s, tag: %s, content: %s\n", btag, ttype,
-            block->tag, sub_content);
+    LOGF("block: %s, type: %s, tag: %s, content: %s\n", btag, ttype, block->tag,
+         sub_content);
   }
   if (block->child != NULL) {
-    fprintf(stderr, "traveling to child block\n");
+    LOGF("traveling to child block\n");
   }
 
   free(sub_content);

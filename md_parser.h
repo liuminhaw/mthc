@@ -11,6 +11,7 @@
 
 #include "file_reader.h"
 #include "md_regex.h"
+#include "logger.h"
 
 typedef enum {
   INVALID,

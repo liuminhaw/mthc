@@ -8,7 +8,7 @@ else
 endif
 
 BINARY = mthc
-OBJS = main.o md_parser.o file_reader.o debug.o str_utils.o md_regex.o style_css.o
+OBJS = main.o md_parser.o file_reader.o debug.o str_utils.o md_regex.o style_css.o logger.o
 FLAG_FILE = .build_flags
 
 # SHELL := /bin/bash
@@ -53,6 +53,9 @@ style_css.o: style_css.c
 debug.o: debug.c debug.h
 	$(CC) $(CFLAGS) -c debug.c
 
+logger.o: logger.c logger.h
+	$(CC) $(CFLAGS) -c logger.c
+
 file_reader.o: file_reader.c file_reader.h
 	$(CC) $(CFLAGS) -c file_reader.c
 
@@ -65,7 +68,7 @@ str_utils.o: str_utils.c str_utils.h
 md_regex.o: md_regex.c md_regex.h
 	$(CC) $(CFLAGS) -c md_regex.c -Wall
 
-main.o: main.c file_reader.h md_regex.h style_css.h debug.h
+main.o: main.c file_reader.h md_regex.h style_css.h debug.h logger.h
 	$(CC) $(CFLAGS) -c main.c
 
 ## debug: build binary with debugging information

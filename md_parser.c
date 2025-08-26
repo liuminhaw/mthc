@@ -20,7 +20,7 @@ Parsers parsers[] = {{heading_parser, 0},      {blockquote_parser, 1},
 
 MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
                        PeekReader *reader, MDLinkReference *link_ref_head) {
-  fprintf(stderr, "parsing block: %s\n", peek_reader_current(reader));
+  LOGF("parsing block: %s\n", peek_reader_current(reader));
   MDBlock *new_block = NULL;
 
   for (int i = 0; i < parsers_count; i++) {
@@ -49,7 +49,7 @@ MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
     inline_parsing(link_ref_head, new_block);
     // printf("list item block content: %s\n", new_block->content);
     if (strchr(new_block->content, '\n') != NULL) {
-      fprintf(stderr, "parse list item child block\n");
+      LOGF("parse list item child block\n");
       new_block->child = child_block_parsing(link_ref_head, new_block);
     }
     // printf("return list item block\n");
@@ -78,7 +78,7 @@ void child_parsing_exec(MDLinkReference *head, MDBlock *block) {
 
 MDBlock *child_block_parsing(MDLinkReference *link_ref_head,
                              MDBlock *prnt_block) {
-  fprintf(stderr, "child block parsing content:\n%s\n", prnt_block->content);
+  LOGF("child block parsing content:\n%s\n", prnt_block->content);
   MDBlock *head_block = NULL;
   MDBlock *tail_block = head_block;
   MDBlock *new_block = NULL;
@@ -130,18 +130,18 @@ void inline_parsing(MDLinkReference *list, MDBlock *block) {
   }
 
   char *content = block->content;
-  fprintf(stderr, "inline origin content: %s\n", content);
+  LOGF("inline origin content: %s\n", content);
   char *emphasis_content = emphasis_parser(content);
-  fprintf(stderr, "inline emphasis content: %s\n", emphasis_content);
+  LOGF("inline emphasis content: %s\n", emphasis_content);
   if (emphasis_content != NULL) {
     // free(NULL) is safe in C and does nothing
     free(block->content);
     block->content = emphasis_content;
-    fprintf(stderr, "replace content\n");
+    LOGF("replace content\n");
   }
 
   char *image_content = image_parser(block->content);
-  fprintf(stderr, "inline image content: %s\n", image_content);
+  LOGF("inline image content: %s\n", image_content);
   if (image_content != NULL && image_content != block->content) {
     if (block->content) {
       free(block->content);
@@ -150,7 +150,7 @@ void inline_parsing(MDLinkReference *list, MDBlock *block) {
   }
 
   char *link_content = link_parser(list, block->content);
-  fprintf(stderr, "inline link content: %s\n", link_content);
+  LOGF("inline link content: %s\n", link_content);
   if (link_content != NULL && link_content != block->content) {
     if (block->content) {
       free(block->content);
@@ -158,7 +158,7 @@ void inline_parsing(MDLinkReference *list, MDBlock *block) {
     block->content = link_content;
   }
 
-  fprintf(stderr, "block content after inline parsing: %s\n", block->content);
+  LOGF("block content after inline parsing: %s\n", block->content);
 
   return;
 }
@@ -232,7 +232,7 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
     if (new_block != NULL) {
       mdblock_content_update(new_block, line, "%s %s");
     } else {
-      fprintf(stderr, "new paragraph block: %s\n", line);
+      LOGF("new paragraph block: %s\n", line);
       new_block = new_mdblock(line, "p", PARAGRAPH, BLOCK, 0);
     }
 
@@ -484,11 +484,11 @@ MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block,
                               PeekReader *reader) {
   char *line = peek_reader_current(reader);
   if (!is_empty_or_whitespace(line)) {
-    fprintf(stderr, "section: not empty or whitespace\n");
+    LOGF("section: not empty or whitespace\n");
     return NULL;
   }
 
-  fprintf(stderr, "new section break\n");
+  LOGF("new section break\n");
   MDBlock *new_block = new_mdblock(NULL, NULL, SECTION_BREAK, INLINE, 0);
 
   peek_reader_advance(reader);
@@ -498,8 +498,7 @@ MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block,
 MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
                      TagType type, int content_newline) {
   MDBlock *block = malloc(sizeof(MDBlock));
-  fprintf(stderr, "[ALLOC] new_mdblock at %p, content: %s\n", (void *)block,
-          content);
+  LOGF("[ALLOC] new_mdblock at %p, content: %s\n", (void *)block, content);
   if (!block) {
     perror("malloc failed");
     return NULL;
@@ -913,7 +912,7 @@ bool safe_paragraph_content(PeekReader *reader, int peek) {
 
 bool safe_ordered_list_content(PeekReader *reader, int peek) {
   char *line = peek_reader_peek(reader, peek);
-  fprintf(stderr, "safe ordered list content: %s\n", line);
+  LOGF("safe ordered list content: %s\n", line);
 
   return is_ordered_list_syntax(line, 0) ||
          is_indented_line(INDENT_SIZE, line) ||
@@ -952,8 +951,7 @@ void free_mdblocks(MDBlock *block) {
     return;
   }
 
-  fprintf(stderr, "[FREE] md_block at %p, content: %s\n", (void *)block,
-          block->content);
+  LOGF("[FREE] md_block at %p, content: %s\n", (void *)block, block->content);
   free(block->content);
   if (block->tag) {
     free(block->tag);

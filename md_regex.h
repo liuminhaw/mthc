@@ -8,6 +8,7 @@
 #include <string.h>
 #include <pcre2.h>
 #include "file_reader.h"
+#include "logger.h"
 
 typedef struct {
   char *label;
