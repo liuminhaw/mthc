@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unicase.h>
 #include <unictype.h>
 #include <unistr.h>
 // #include <unitypes.h>
@@ -552,6 +553,52 @@ const uint8_t *str_move(const uint8_t *str, int offset) {
 
 bool is_utf8_word(ucs4_t ch) { return uc_is_alpha(ch) || uc_is_digit(ch); }
 
+char *convert_id_tag(char *str) {
+  if (str == NULL) {
+    return NULL;
+  }
+
+  const uint8_t *traverse_ptr = (uint8_t *)str;
+  const size_t str_len = strlen(str);
+
+  uint8_t *ret_str = malloc(str_len + 1);
+  uint8_t *ret_ptr = ret_str;
+
+  ucs4_t ch = 0;
+  while (traverse_ptr != NULL) {
+    const uint8_t *next = u8_next(&ch, traverse_ptr);
+    if (!next) {
+      break;
+    }
+
+    // ucs4_t dummy_ch;
+    // const uint8_t *peek_next = u8_next(&dummy_ch, next);
+    if (ch == '`' || ch == '"' || ch == '\'') {
+      traverse_ptr = next;
+      continue;
+    }
+
+    if (ch == ' ') {
+      *ret_ptr = '-';
+      ret_ptr++;
+    } else if (uc_is_general_category(ch, UC_CATEGORY_Lu)) {
+      ch = uc_tolower(ch);
+      uint8_t buf[8];
+      int len = u8_uctomb(buf, ch, sizeof(buf));
+      memcpy(ret_ptr, buf, len);
+      ret_ptr += len;
+    } else {
+      memcpy(ret_ptr, traverse_ptr, next - traverse_ptr);
+      ret_ptr += next - traverse_ptr;
+    }
+
+    traverse_ptr = next;
+  }
+  *ret_ptr = '\0';
+
+  return (char *)ret_str;
+}
+
 #ifdef TEST_STR_UTILS
 int main() {
   char *test_str = "emphasis in `inline *code*` should not be emphasized";
@@ -565,7 +612,7 @@ int main() {
   //                  "試試看 **_粗體斜體_**，以及 __蛇形_粗體__。";
   // char *test_str = "這是一個 *測試* 字串，包含 **粗體** 和 _斜體_ 文字。";
 
-  char *result = fullstr_sub_tagpair(test_str, PT_NONE);
+  char *result = fullstr_sub_tagpair(test_str, PT_NONE, &(bool){false});
   if (result == NULL) {
     fprintf(stderr, "Error processing string.\n");
     return 1;
@@ -573,6 +620,14 @@ int main() {
 
   fprintf(stderr, "Original: %s\n\n", test_str);
   fprintf(stderr, "Substituted: %s\n", result);
+
+  char *test_id = "Heading 1";
+  // char *test_id = "This is a `test` ID with \"quotes\" and 'single quotes'";
+  // char *test_id = "中文的標題 （測試）";
+  char *id_result = convert_id_tag(test_id);
+
+  fprintf(stderr, "Original ID: %s\n", test_id);
+  fprintf(stderr, "Converted ID: %s\n", id_result);
 
   return 0;
 }

@@ -2,6 +2,7 @@
 #define STR_UTILS_H
 
 #include <unictype.h>
+#include "logger.h"
 
 typedef enum {
   PT_NONE,
@@ -45,5 +46,6 @@ const uint8_t *str_move(const uint8_t *str, int offset);
 
 bool is_utf8_word(ucs4_t ch);
 
+char *convert_id_tag(char *str);
 
 #endif

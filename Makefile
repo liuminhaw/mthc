@@ -125,10 +125,10 @@ mem-check:
 
 ## str_utils: build str_utils binary for functional checking
 .PHONY: str_utils
-str_utils: str_utils.c str_utils.h
-	$(CC) -DTEST_STR_UTILS -o str_utils_test str_utils.c -lunistring
+str_utils: str_utils.c str_utils.h logger.o
+	$(CC) -DTEST_STR_UTILS -o str_utils_test str_utils.c logger.o -lunistring
 
 ## md_regex: build md_regex binary for functional checking
 .PHONY: md_regex
-md_regex: md_regex.c md_regex.h file_reader.o
-	$(CC) -DTEST_MD_REGEX -o md_regex_test md_regex.c file_reader.o -Wall -lpcre2-8
+md_regex: md_regex.c md_regex.h file_reader.o logger.o
+	$(CC) -DTEST_MD_REGEX -o md_regex_test md_regex.c file_reader.o logger.o -Wall -lpcre2-8

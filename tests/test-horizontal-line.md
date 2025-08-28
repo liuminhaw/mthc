@@ -1,7 +1,7 @@
 ## Heading
 Simple paragraph
 
-Heading
+Heading 2
 ---
 
 Another paragraph

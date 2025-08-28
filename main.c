@@ -5,6 +5,7 @@
 #include "file_reader.h"
 #include "logger.h"
 #include "md_regex.h"
+#include "str_utils.h"
 #include "style_css.h"
 
 // void generate_html(MDBlock *block, char *css_filepath);
@@ -207,7 +208,21 @@ void print_html(MDBlock *block) {
   } else if (block->type == SELF_CLOSING) {
     printf("<%s />\n", block->tag);
   } else if (block->type == BLOCK) {
-    printf("<%s>\n", block->tag);
+    char *heading_id;
+    switch (block->block) {
+    case H1:
+    case H2:
+    case H3:
+    case H4:
+    case H5:
+    case H6:
+      heading_id = convert_id_tag(block->content);
+      printf("<%s id=\"%s\">\n", block->tag, heading_id);
+      free(heading_id);
+      break;
+    default:
+      printf("<%s>\n", block->tag);
+    }
     if (block->content != NULL) {
       if (block->block != CODEBLOCK) {
         escape_char_parsing(block->content);
