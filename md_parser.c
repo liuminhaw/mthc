@@ -11,12 +11,13 @@
 
 static const int INDENT_SIZE = 4;
 
-const int parsers_count = 10;
+const int parsers_count = 11;
 Parsers parsers[] = {{heading_parser, 0},      {blockquote_parser, 1},
                      {ordered_list_parser, 1}, {unordered_list_parser, 1},
                      {codeblock_parser, 1},    {horizontal_line_parser, 0},
                      {plain_parser, 0},        {link_reference_parser, 0},
-                     {paragraph_parser, 1},    {section_break_parser, 0}};
+                     {html_tag_parser, 1},     {paragraph_parser, 1},
+                     {section_break_parser, 0}};
 
 MDBlock *block_parsing(MDBlock *prnt_block, MDBlock *curr_block,
                        PeekReader *reader, MDLinkReference *link_ref_head) {
@@ -217,6 +218,40 @@ MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
     }
   }
 
+  return new_block;
+}
+
+MDBlock *html_tag_parser(MDBlock *prnt_block, MDBlock *curr_block,
+                         PeekReader *reader) {
+  MDBlock *new_block = NULL;
+
+  char *line = peek_reader_current(reader);
+  if (!is_html_start_tag(line, strlen(line))) {
+    return NULL;
+  }
+
+  while (true) {
+    line = peek_reader_current(reader);
+    if (is_empty_or_whitespace(line)) {
+      break;
+    }
+
+    if (new_block != NULL) {
+      mdblock_content_update(new_block, line, "%s%s\n");
+    } else {
+      LOGF("new html tag block: %s\n", line);
+      new_block = new_mdblock(line, "", PLAIN, NONE, 1);
+    }
+
+    peek_reader_advance(reader);
+  }
+
+  if (new_block->content != NULL) {
+    size_t len = strlen(new_block->content);
+    if (len > 0 && new_block->content[len - 1] == '\n') {
+      new_block->content[len - 1] = '\0';
+    }
+  }
   return new_block;
 }
 
@@ -870,6 +905,129 @@ int is_indented_line(int count, char *str) {
   return count;
 }
 
+bool is_html_start_tag(char *s, size_t n) {
+  if (s == NULL || n < 3) {
+    return false;
+  }
+
+  size_t idx = 0;
+  if (s[idx] != '<') {
+    return false;
+  }
+  idx++;
+
+  // Comment
+  if (idx + 2 < n && s[idx] == '!' && s[idx + 1] == '-' && s[idx + 2] == '-') {
+    idx += 3;
+    for (; idx + 2 < n; idx++) {
+      if (s[idx] == '-' && s[idx + 1] == '-' && s[idx + 2] == '>' &&
+          idx + 3 == n) {
+        return true;
+      }
+    }
+  }
+
+  // Declaration
+  if (s[idx] == '!') {
+    for (; idx < n; idx++) {
+      if (s[idx] == '>' && idx + 1 == n) {
+        return true;
+      }
+    }
+  }
+
+  // Processing instruction <? ... ?>
+  if (s[idx] == '?') {
+    idx++;
+    for (; idx < n - 1; idx++) {
+      if (s[idx] == '?' && s[idx + 1] == '>' && idx + 1 == n) {
+        return true;
+      }
+    }
+  }
+
+  // Tag name
+  if (idx >= n || !is_tag_name_start((unsigned char)s[idx])) {
+    return false;
+  }
+  idx++;
+  while (idx < n && is_tag_name_char((unsigned char)s[idx])) {
+    idx++;
+  }
+
+  // Attributes / end
+  while (true) {
+    while (idx < n && isspace((unsigned char)s[idx])) {
+      idx++;
+    }
+    if (idx >= n) {
+      return false;
+    }
+
+    if (s[idx] == '>') {
+      return true;
+    }
+    if (s[idx] == '/' && idx + 1 < n && s[idx + 1] == '>') {
+      return true;
+    }
+
+    // attribute name
+    if (!is_tag_name_start((unsigned char)s[idx])) {
+      return false;
+    }
+    idx++;
+    while (idx < n && is_tag_name_char((unsigned char)s[idx])) {
+      idx++;
+    }
+
+    while (idx < n && isspace((unsigned char)s[idx])) {
+      idx++;
+    }
+    if (idx < n && s[idx] == '=') {
+      idx++;
+      while (idx < n && isspace((unsigned char)s[idx])) {
+        idx++;
+      }
+      if (idx >= n) {
+        return false;
+      }
+
+      if (s[idx] == '"' || s[idx] == '\'') { // quoted attribute value
+        char quote = s[idx++];
+        while (idx < n && s[idx] != quote) {
+          idx++;
+        }
+        if (idx >= n) {
+          return false; // No closing quote
+        }
+        idx++;
+      } else {
+        size_t start = idx;
+        while (idx < n) {
+          unsigned char c = s[idx];
+          if (isspace(c) || c == '"' || c == '\'' || c == '=' || c == '<' ||
+              c == '>' || c == '`') {
+            break;
+          }
+          idx++;
+        }
+        if (start == idx) {
+          return false; // No attribute value
+        }
+      }
+    }
+  }
+}
+
+bool is_tag_name_start(int c) {
+  return (c == '_' || c == ':' || (c >= 'A' && c <= 'Z') ||
+          (c >= 'a' && c <= 'z'));
+}
+
+bool is_tag_name_char(int c) {
+  return is_tag_name_start(c) || c == '-' || c == '.' || (c >= '0' && c <= '9');
+}
+
 bool is_indented_tab(char *str) {
   if (str == NULL || strlen(str) < 1) {
     return false;
@@ -907,7 +1065,8 @@ bool safe_paragraph_content(PeekReader *reader, int peek) {
          !is_indented_line(INDENT_SIZE, line) && !is_indented_tab(line) &&
          !is_blockquote_syntax(line) && !is_heading_syntax(&line) &&
          !is_heading_alternate_syntax(reader) &&
-         !is_ordered_list_syntax(line, 0) && !is_unordered_list_syntax(line);
+         !is_ordered_list_syntax(line, 0) && !is_unordered_list_syntax(line) &&
+         !is_html_start_tag(line, strlen(line));
 }
 
 bool safe_ordered_list_content(PeekReader *reader, int peek) {

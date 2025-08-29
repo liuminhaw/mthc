@@ -55,7 +55,6 @@ typedef struct {
 } Parsers;
 
 
-
 MDBlock* new_mdblock(char *content, char *html_tag, BlockTag block_tag, 
                      TagType type, int content_newline);
 void free_mdblocks(MDBlock *block);
@@ -72,6 +71,7 @@ MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *read
 MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock *link_reference_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
+MDBlock *html_tag_parser(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader);
 MDBlock *child_block_parsing(MDLinkReference *link_ref_head, MDBlock *block);
 MDBlock *content_block_parsing(MDBlock *prnt_block, MDBlock *curr_block, PeekReader *reader, MDLinkReference *link_ref_head);
 
@@ -91,6 +91,9 @@ int is_indented_line(int count, char *str);
 bool is_empty_or_whitespace(const char *str); 
 bool is_indented_tab(char *str);
 bool is_blockquote_syntax(char *str);
+bool is_tag_name_start(int c);
+bool is_tag_name_char(int c);
+bool is_html_start_tag(char *s, size_t n);
 bool safe_paragraph_content(PeekReader *reader, int peek);
 bool safe_ordered_list_content(PeekReader *reader, int peek);
 bool safe_unordered_list_content(PeekReader *reader, int peek);
