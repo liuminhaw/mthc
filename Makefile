@@ -84,7 +84,8 @@ clean:
 	@echo "Done."
 
 ## styles: create style_css.c and style_css.h for css style embedding
-ASSET_PAIRS := default_dark_css:css/catppuccin-mocha.css default_light_css:css/catppuccin-latte.css
+# ASSET_PAIRS := default_dark_css:css/catppuccin-mocha.css default_light_css:css/catppuccin-latte.css
+ASSET_PAIRS := default_theme_css:css/catppuccin-theme.css 
 .PHONY: styles
 styles: $(foreach p,$(ASSET_PAIRS),$(word 2,$(subst :, ,$(p))))
 	@mkdir -p build include

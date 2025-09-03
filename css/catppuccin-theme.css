@@ -1,4 +1,3 @@
-/* Catppuccin Mocha Theme - https://github.com/catppuccin/catppuccin */
 :root {
   --ctp-rosewater: #f5e0dc;
   --ctp-flamingo:  #f2cdcd;
@@ -27,6 +26,36 @@
   --ctp-base:      #1e1e2e;
   --ctp-mantle:    #181825;
   --ctp-crust:     #11111b;
+}
+
+body.light {
+  --ctp-rosewater: #dc8a78;
+  --ctp-flamingo:  #dd7878;
+  --ctp-pink:      #ea76cb;
+  --ctp-mauve:     #8839ef;
+  --ctp-red:       #d20f39;
+  --ctp-maroon:    #e64553;
+  --ctp-peach:     #fe640b;
+  --ctp-yellow:    #df8e1d;
+  --ctp-green:     #40a02b;
+  --ctp-teal:      #179299;
+  --ctp-sky:       #04a5e5;
+  --ctp-sapphire:  #209fb5;
+  --ctp-blue:      #1e66f5;
+  --ctp-lavender:  #7287fd;
+
+  --ctp-text:      #4c4f69;
+  --ctp-subtext1:  #5c5f77;
+  --ctp-subtext0:  #6c6f85;
+  --ctp-overlay2:  #7c7f93;
+  --ctp-overlay1:  #8c8fa1;
+  --ctp-overlay0:  #9ca0b0;
+  --ctp-surface2:  #acb0be;
+  --ctp-surface1:  #bcc0cc;
+  --ctp-surface0:  #ccd0da;
+  --ctp-base:      #eff1f5;
+  --ctp-mantle:    #e6e9ef;
+  --ctp-crust:     #dce0e8;
 }
 
 body {
@@ -89,6 +118,29 @@ a:hover {
   text-decoration: none;
 }
 
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.toggle-theme {
+  width: 28px;
+  height: 28px;
+  margin: 0 20px;
+  cursor: pointer;
+}
+
+.hidden {
+  display: none;
+}
+
+
 blockquote {
   border-left: 4px solid var(--ctp-pink);
   padding-left: 1em;
@@ -122,6 +174,10 @@ hr {
   margin: 2rem 0;
 }
 
+ul, ol {
+  line-height: 1.7;
+}
+
 ul li::marker {
   color: var(--ctp-pink); /* bullet color */
 }
@@ -131,9 +187,9 @@ ol li::marker {
 }
 
 .container {
-  max-width: 800px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 0.8rem 1rem;
 }
 
 /* highlight.js styles */

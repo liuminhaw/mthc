@@ -8,22 +8,25 @@
 #include "str_utils.h"
 #include "style_css.h"
 
-// void generate_html(MDBlock *block, char *css_filepath);
 void generate_html(MDBlock *block, const unsigned char *css_theme,
                    unsigned int css_theme_len);
 void print_html(MDBlock *block);
-// void write_css(int fd, const unsigned char *p, size_t n);
 int write_css(FILE *fp, const unsigned char *p, size_t n);
+
+static bool debug_mode = false;
+static bool test_mode = false;
+static bool css_style = true;
 
 static void usage(const char *prog_name) {
   fprintf(stdout,
           "Usage: %s [options] <markdown_file>\n"
           "\n"
           "Options: \n"
-          "  --help        Show this help message and exit\n"
-          "  --dark        Use dark theme for CSS\n"
-          "  --debug       Enable debug logging\n"
-          "  --test        For testing purposes only\n",
+          "  --help             Show this help message and exit\n"
+          "  --output=FILE      Specify output html file (default: stdout)\n"
+          "  --no-style         Disable CSS styling in the output HTML\n"
+          "  --debug            Enable debug logging\n"
+          "  --test             For testing purposes only\n",
           prog_name);
 }
 
@@ -40,26 +43,33 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  bool test_flag = false;
-  bool debug_flag = false;
-  // char *css_theme = "css/catppuccin-latte.css";
-  const unsigned char *css_theme = default_light_css;
-  unsigned int css_theme_len = default_light_css_len;
+  const char *output_path = NULL;
+  const unsigned char *css_theme = default_theme_css;
+  unsigned int css_theme_len = default_theme_css_len;
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--test") == 0) {
-      test_flag = true;
+      test_mode = true;
     }
-    if (strcmp(argv[i], "--dark") == 0) {
-      css_theme = default_dark_css;
-      css_theme_len = default_light_css_len;
-      // css_theme = "css/catppuccin-mocha.css";
+    if (strcmp(argv[i], "--no-style") == 0) {
+      css_style = false;
     }
     if (strcmp(argv[i], "--debug") == 0) {
-      debug_flag = true;
+      debug_mode = true;
+    }
+    if (strncmp(argv[i], "--output=", 9) == 0) {
+      output_path = argv[i] + 9;
     }
   }
-  log_init(debug_flag);
+  log_init(debug_mode);
   LOGF("Debug mode enabled\n");
+
+  if (output_path != NULL) {
+    FILE *output_file = freopen(output_path, "w", stdout);
+    if (!output_file) {
+      fprintf(stderr, "Failed to open output file: %s\n", output_path);
+      return 1;
+    }
+  }
 
   // FILE *css_file = fopen(css_theme, "r");
   // if (!css_file) {
@@ -127,7 +137,7 @@ int main(int argc, char *argv[]) {
 
   // Generate HTML
   LOGF("\n=== Generate HTML ===\n");
-  if (test_flag) {
+  if (test_mode) {
     print_html(head_block);
   } else {
     generate_html(head_block, css_theme, css_theme_len);
@@ -160,28 +170,65 @@ void generate_html(MDBlock *block, const unsigned char *css_theme,
   printf("<title>Placeholder title</title>\n");
   printf("<meta name=\"viewport\" content=\"width=device-width, "
          "initial-scale=1.0\">\n");
-  printf("<style>\n");
-  // write_css(fileno(stdout), css_theme, (size_t)css_theme_len);
-  write_css(stdout, css_theme, (size_t)css_theme_len);
-  // do {
-  //   char *line = peek_reader_current(reader);
-  //   if (line != NULL) {
-  //     printf("%s\n", line);
-  //   }
-  //   if (!peek_reader_advance(reader)) {
-  //     break; // Exit loop if no more lines to read
-  //   }
-  // } while (reader->count > 0);
-  printf("</style>\n");
-  printf("<script "
-         "src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/"
-         "highlight.min.js\"></script>");
+  if (css_style) {
+    printf("<style>\n");
+    // write_css(fileno(stdout), css_theme, (size_t)css_theme_len);
+    write_css(stdout, css_theme, (size_t)css_theme_len);
+    // do {
+    //   char *line = peek_reader_current(reader);
+    //   if (line != NULL) {
+    //     printf("%s\n", line);
+    //   }
+    //   if (!peek_reader_advance(reader)) {
+    //     break; // Exit loop if no more lines to read
+    //   }
+    // } while (reader->count > 0);
+    printf("</style>\n");
+    printf("<script "
+           "src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/"
+           "highlight.min.js\"></script>");
+  }
   printf("</head>\n");
   printf("<body>\n");
+  if (css_style) {
+    printf("<nav>\n");
+    printf(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 "
+        "0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" "
+        "class=\"toggle-theme\">\n");
+    printf(
+        "<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 "
+        "3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 "
+        "18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 "
+        "5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z\" />\n");
+    printf("</svg>\n");
+    printf(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 "
+        "0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" "
+        "class=\"toggle-theme hidden\">\n");
+    printf(
+        "<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M21.752 "
+        "15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 "
+        "0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 "
+        "21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z\" />\n");
+    printf("</svg>\n");
+    printf("</nav>\n");
+  }
   printf("<div class=\"container\">\n");
   print_html(block);
   printf("</div>\n");
-  printf("<script>hljs.highlightAll();</script>\n");
+  if (css_style) {
+    printf("<script>hljs.highlightAll();</script>\n");
+    printf("<script>");
+    printf("const themes = document.querySelectorAll('.toggle-theme');\n");
+    printf("themes.forEach(theme => {\n");
+    printf("theme.addEventListener('click', () => {\n");
+    printf("document.body.classList.toggle('light');\n");
+    printf("themes.forEach(t => t.classList.toggle('hidden'));\n");
+    printf("});\n");
+    printf("});\n");
+    printf("</script>\n");
+  }
   printf("</body>\n");
 
   // free_peek_reader(reader);
