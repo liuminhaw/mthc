@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -558,6 +559,8 @@ char *convert_id_tag(char *str) {
     return NULL;
   }
 
+  trim_space_inplace(str);
+
   const uint8_t *traverse_ptr = (uint8_t *)str;
   const size_t str_len = strlen(str);
 
@@ -597,6 +600,29 @@ char *convert_id_tag(char *str) {
   *ret_ptr = '\0';
 
   return (char *)ret_str;
+}
+
+char *trim_space_inplace(char *str) {
+  if (str == NULL) {
+    return NULL;
+  }
+
+  char *start = str;
+  while (*start && isspace((unsigned char)*start)) {
+    start++;
+  }
+
+  char *end = str + strlen(str) - 1;
+  while (end > start && isspace((unsigned char)*end)) {
+    end--;
+  }
+  *(end + 1) = '\0';
+
+  if (start != str) {
+    memmove(str, start, end - start + 2);
+  }
+
+  return str;
 }
 
 #ifdef TEST_STR_UTILS

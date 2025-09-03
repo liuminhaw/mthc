@@ -53,3 +53,7 @@ My search engine is [Google]\(https://www.google.com).
 Testing for reference-style link [Google][1\] [Google] [1].
 
 Testing URL and email address **\<https://www.markdownguide.org>** with <fake@example.com>
+
+Feel free to email <fake@email.com>. To report bugs or request features, please open an issue in the [GitHub repository](https://github.com/hahaha/mthc). 
+
+

@@ -52,8 +52,8 @@ body.light {
   --ctp-overlay0:  #9ca0b0;
   --ctp-surface2:  #acb0be;
   --ctp-surface1:  #bcc0cc;
-  --ctp-surface0:  #ccd0da;
-  --ctp-base:      #eff1f5;
+  --ctp-surface0:  #eff1f5;
+  --ctp-base:      #e6e9ef;
   --ctp-mantle:    #e6e9ef;
   --ctp-crust:     #dce0e8;
 }
@@ -73,6 +73,7 @@ body {
 /* } */
 h1 {
   color: var(--ctp-red);
+  font-size: 3rem;
 }
 
 h2 {
@@ -100,6 +101,7 @@ code, pre {
   padding: 0.2em 0.4em;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
+  background-color: var(--ctp-surface0);
 }
 
 pre {
@@ -129,6 +131,14 @@ nav {
   align-items: center;
 }
 
+footer {
+  color: var(--ctp-subtext0);
+  font-size: 14px;
+  text-align: center;
+  margin-top: 80px;
+  /* margin-bottom: 36px; */
+}
+
 .toggle-theme {
   width: 28px;
   height: 28px;
@@ -146,6 +156,10 @@ blockquote {
   padding-left: 1em;
   color: var(--ctp-maroon);
   margin: 1.5em 0;
+}
+
+strong, em {
+  color: var(--ctp-maroon);
 }
 
 table {

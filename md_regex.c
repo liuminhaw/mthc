@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <pcre2.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "file_reader.h"
@@ -46,6 +47,8 @@ MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str,
   free(general_links);
   free(simple_addresses);
   free(tag_links);
+
+  qsort(combined_links, total_count, sizeof(MDLinkRegex), cmp_md_link_start);
 
   *result_count = total_count;
   LOGF("parse markdown links: return combined.\n");
@@ -864,6 +867,12 @@ bool is_escaped(const char *str, char start_target, char end_target,
   }
 
   return false;
+}
+
+static int cmp_md_link_start(const void *a, const void *b) {
+  MDLinkRegex *linkA = (MDLinkRegex *)a;
+  MDLinkRegex *linkB = (MDLinkRegex *)b;
+  return linkA->start - linkB->start;
 }
 
 #ifdef TEST_MD_REGEX

@@ -15,4 +15,4 @@ Multiple images in a row like ![Image 1](/image/image1.png) [![Image 2](/image/i
 
     Image in code block should not be transformed:
     ![Example image](/image/example.png "This is an example image")
-    
+

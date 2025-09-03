@@ -419,12 +419,14 @@ MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
 
 MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block,
                           PeekReader *reader) {
+  LOGF("Enter codeblock parser\n");
   MDBlock *new_block = NULL;
   while (true) {
     char *line = peek_reader_current(reader);
     char *next_line = peek_reader_peek(reader, 1);
 
-    if (is_empty_or_whitespace(line)) {
+    bool is_indented = is_indented_line(INDENT_SIZE, line);
+    if (!is_indented && is_empty_or_whitespace(line)) {
       break;
     }
 
@@ -539,6 +541,7 @@ MDBlock *new_mdblock(char *content, char *html_tag, BlockTag block_tag,
     return NULL;
   }
 
+  LOGF("new_mdblock line break parser\n");
   char *parsed_line = line_break_parser(content);
   if (parsed_line != NULL) {
     content = parsed_line;
@@ -583,9 +586,13 @@ char *line_break_parser(const char *line) {
 
   const char *substitute = "<br>";
   size_t line_len = strlen(line);
+  LOGF("line len: %zu\n", line_len);
+  if (line_len < 2) {
+    return NULL;
+  }
   size_t ws_count = 0;
 
-  for (size_t i = line_len - 1; i >= 0; i--) {
+  for (int i = line_len - 1; i >= 0; i--) {
     if (isspace((unsigned char)line[i])) {
       ws_count++;
     } else {
@@ -622,6 +629,7 @@ char *emphasis_parser(char *str) {
 }
 
 char *link_parser(MDLinkReference *list, char *str) {
+  LOGF("enter link_parser with str: %s\n", str);
   if (str == NULL) {
     return NULL;
   }
@@ -638,6 +646,10 @@ char *link_parser(MDLinkReference *list, char *str) {
   char *dup_str = strdup(str);
   for (size_t i = 0; i < count; i++) {
     MDLinkRegex *link = &links[i];
+
+    LOGF("link %zu: label=%s, url=%s, title=%s, start=%d, end=%d\n", i,
+         link->label, link->url, link->title ? link->title : "NULL",
+         link->start, link->end);
 
     link->start += offset;
     link->end += offset;

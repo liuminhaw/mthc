@@ -30,7 +30,7 @@ emphasis in `inline *code*` should not be emphasized
 escape \`inline code\`
 
 ### Codeblock
-    
+ 
     **style** in codeblock should not be emphasized
     _italic_ style also
     ***bold and italic*** style also should not be emphasized
