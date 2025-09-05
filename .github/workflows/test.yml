@@ -18,8 +18,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y build-essential libunistring-dev libpcre2-dev
+          sudo apt-get update
+          sudo apt-get install -y build-essential libunistring-dev libpcre2-dev
 
       - name: Test output cases
         run: |
@@ -35,8 +35,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y build-essential libunistring-dev libpcre2-dev valgrind
+          sudo apt-get update
+          sudo apt-get install -y build-essential libunistring-dev libpcre2-dev valgrind
 
       - name: Testing memory leaks
         run: |
