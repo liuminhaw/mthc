@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential libunistring-dev libpcre2-dev
+
+      - name: Test output cases
+        run: |
+          echo "Running tests..."
+          make check
+
+  mem-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential libunistring-dev libpcre2-dev valgrind
+
+      - name: Testing memory leaks
+        run: |
+          echo "Running tests..."
+          make mem-check

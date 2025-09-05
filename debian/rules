@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@
+  
+override_dh_auto_test:
+	make check
+	make mem-check
+
+override_dh_auto_build:
+	dh_auto_build -- all
+
+#override_dh_auto_install:
+#	install -D -m0755 ./mthc debian/mthc/usr/bin/mthc
+#	install -D -m0644 ./docs/manual.md debian/mthc/usr/share/doc/mthc/README.md
+

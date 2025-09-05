@@ -1,0 +1,94 @@
+name: Build .rpm packages
+
+on:
+  workflow_call: {}
+  # push
+
+jobs:
+  build-rpm:
+    name: Build on ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - rockylinux/rockylinux:10
+          - rockylinux/rockylinux:9
+          - rockylinux/rockylinux:8
+    container: ${{ matrix.os }}
+
+    steps:
+      - name: Install tools
+        run: |
+          dnf install -y git ca-certificates
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y rpmdevtools gcc make dnf-plugins-core
+          dnf install -y which valgrind 
+          if [[ "${{ matrix.os }}" == "rockylinux/rockylinux:8"  ]]; then
+            dnf config-manager --set-enabled powertools
+          else
+            dnf config-manager --set-enabled crb
+          fi
+          dnf install -y libunistring-devel pcre2-devel
+
+      - name: Prepare RPM build environment
+        shell: bash
+        run: |
+          name=$(rpmspec -q --srpm --qf '%{NAME}\n' rhel/rpm.spec)
+          ver=$(rpmspec -q --srpm --qf '%{VERSION}\n' rhel/rpm.spec)
+          mkdir -p .rpmbuild/{SOURCES,SPECS,RPMS,SRPMS}
+          git archive --format=tar --prefix=${name}-${ver}/ HEAD | gzip -9 > .rpmbuild/SOURCES/${name}-${ver}.tar.gz
+
+          # mkdir -p /tmp/${name}-${ver}
+          # rsync -a --delete-excluded --exclude '.git' --exclude '.rpmbuild' --exclude '*.o' ./ /tmp/${name}-${ver}/
+          # tar -C /tmp -czf .rpmbuild/SOURCES/${name}-${ver}.tar.gz ${name}-${ver}
+
+      - name: Build package
+        run: |
+          cp rhel/rpm.spec .rpmbuild/SPECS/mthc.spec
+          rpmbuild -ba .rpmbuild/SPECS/mthc.spec \
+            --define "_topdir     $PWD/.rpmbuild" \
+            --define "_sourcedir  $PWD/.rpmbuild/SOURCES" \
+            --define "_specdir    $PWD/.rpmbuild/SPECS" \
+            --define "_rpmdir     $PWD/.rpmbuild/RPMS" \
+            --define "_srcrpmdir  $PWD/.rpmbuild/SRPMS"
+
+      - name: Install node for artifact upload
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "rockylinux/rockylinux:10"  ]]; then
+            dnf install -y nodejs
+          else
+            dnf module reset nodejs
+            dnf module -y enable nodejs:22
+            dnf -y install nodejs
+          fi
+
+      - name: Collect artifacts
+        run: |
+          name=$(rpmspec -q --srpm --qf '%{NAME}\n' rhel/rpm.spec)
+          ver=$(rpmspec -q --srpm --qf '%{VERSION}\n' rhel/rpm.spec)
+          mkdir -p rpm-artifacts
+          mv .rpmbuild/RPMS/*/${name}-${ver}*.rpm rpm-artifacts/
+
+      - name: Artifact name
+        id: artifact_name
+        shell: bash
+        run: |
+          OS="${{ matrix.os }}"
+          ARTIFACT_NAME="pkg-$(basename "$OS" | sed 's/:/-/g')"
+          echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact_name.outputs.artifact_name }}
+          path: rpm-artifacts/*
+
+
+

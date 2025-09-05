@@ -1,0 +1,59 @@
+name: Build Arch packages
+
+on:
+  workflow_call: {}
+  # push
+
+jobs:
+  build-arch:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+
+    steps:
+      - name: Install tools
+        run: |
+          pacman -Syu --noconfirm git base-devel
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          pacman -Sy --needed --noconfirm pacman-contrib tar sed findutils which
+          pacman -Sy --needed --noconfirm libunistring pcre2 valgrind
+
+      - name: Create non-root build user
+        run: |
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+
+      - name: Prepare build environment
+        run: |
+          name="$(grep -oP '^\s*pkgname\s*=\s*\K\S+' PKGBUILD)"
+          ver="$(grep -oP '^\s*pkgver\s*=\s*\K\S+' PKGBUILD)"
+          su - builder -c "cd $GITHUB_WORKSPACE && git archive --format=tar.gz --prefix=\"${name}-${ver}/\" -o ${name}-${ver}.tar.gz HEAD"
+          su - builder -c "cd $GITHUB_WORKSPACE && updpkgsums"
+
+      - name: Build package
+        run: |
+          su - builder -c "cd $GITHUB_WORKSPACE && makepkg -s --noconfirm --cleanbuild --syncdeps"
+
+      - name: Install node for artifact upload
+        shell: bash
+        run: |
+          pacman -Sy --needed --noconfirm nodejs npm
+
+      - name: Collect artifacts
+        run: |
+          name="$(grep -oP '^\s*pkgname\s*=\s*\K\S+' PKGBUILD)"
+          ver="$(grep -oP '^\s*pkgver\s*=\s*\K\S+' PKGBUILD)"
+          mkdir -p arch-artifacts
+          mv ${name}-${ver}-*.pkg.tar.zst arch-artifacts/arch-${name}-${ver}.pkg.tar.zst
+          mv ${name}-${ver}.tar.gz arch-artifacts/arch-${name}-${ver}.tar.gz
+          mv PKGBUILD arch-artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-archlinux
+          path: arch-artifacts/*

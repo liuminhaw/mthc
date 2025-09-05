@@ -1,0 +1,75 @@
+name: Build .deb packages
+
+on:
+  workflow_call: {}
+  # push
+
+jobs:
+  build-deb:
+    name: Build on ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - debian:trixie
+          - debian:bookworm
+          - debian:bullseye
+    container: ${{ matrix.os }}
+
+    steps:
+      - name: Install tools
+        run: |
+          apt-get update
+          apt-get install -y git ca-certificates
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential debhelper devscripts dpkg-dev pkg-config
+          apt-get install -y libunistring-dev libpcre2-dev
+          apt-get install -y valgrind
+
+      - name: Build package (no signing)
+        run: debuild -us -uc -b
+
+      - name: Install node for artifact upload
+        shell: bash
+        run: |
+          apt-get update
+          if [[ "${{ matrix.os }}" == "debian:bullseye"  ]]; then
+            apt-get install -y curl ca-certificates gnupg
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          fi
+          apt-get install -y nodejs
+          node --version
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p deb-artifacts
+          mv ../mthc_*.deb deb-artifacts/ 
+          pkg=$(ls deb-artifacts/*.deb | xargs basename)
+          name=$(dpkg-deb -f "deb-artifacts/${pkg}" Package)
+          version=$(dpkg-deb -f "deb-artifacts/${pkg}" Version)
+          dist=$(echo "${{ matrix.os }}" | cut -d: -f2)
+          mv deb-artifacts/${pkg} deb-artifacts/${name}_${version}.${dist}.deb
+
+      - name: Artifact name
+        id: artifact_name
+        shell: bash
+        run: |
+          OS="${{ matrix.os }}"
+          ARTIFACT_NAME="pkg-${OS//:/-}"
+          echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact_name.outputs.artifact_name }}
+          path: deb-artifacts/*
+
+
+

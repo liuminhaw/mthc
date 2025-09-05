@@ -1,0 +1,15 @@
+Source: mthc
+Section: utils
+Priority: optional
+Maintainer: Min-Haw Liu <lmhaw@hey.com>
+Build-Depends: debhelper-compat (= 13), gcc, make, pkg-config, libunistring-dev, libpcre2-dev, valgrind
+Standards-Version: 4.7.0
+Homepage: https://mthc.lmhaw.dev
+Rules-Requires-Root: no
+
+Package: mthc
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Markdown to HTML converter (C).
+ Converts Markdown basic syntax to HTML with default light/dark styling.
+
