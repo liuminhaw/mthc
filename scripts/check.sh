@@ -98,6 +98,10 @@ print_result() {
     echo "${_format}Total tests: ${#_TEST_RESULTS[@]}"
     echo "Passed tests: ${_passed_count}"
     echo "Failed tests: ${_failed_count}${_RESET}"
+
+    if [[ ${_failed_count} -ne 0 ]]; then
+        return 1
+    fi
 }
 
 main() {
@@ -128,7 +132,9 @@ main() {
         run_test "${_file}"
     done
 
-    print_result
+    if ! print_result; then
+      exit 1
+    fi
 }
 
 main "$@"

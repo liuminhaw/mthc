@@ -1,6 +1,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#define UNUSED(x) (void)(x)
+
 // Block type format
 // #define PSR_H1_PATTERN "^#\\s+(.*)$"
 // #define PSR_H2_PATTERN "^##\\s+(.*)$"
@@ -87,7 +89,7 @@ int is_heading_syntax(char **str);
 int is_heading_alternate_syntax(PeekReader *reader);
 int is_ordered_list_syntax(char *str, int first_item); 
 int is_unordered_list_syntax(char *cp);
-int is_indented_line(int count, char *str);
+int is_indented_line(size_t count, char *str);
 bool is_empty_or_whitespace(const char *str); 
 bool is_indented_tab(char *str);
 bool is_blockquote_syntax(char *str);

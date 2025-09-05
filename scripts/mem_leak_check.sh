@@ -62,6 +62,10 @@ print_result() {
     echo "${_format}Total tests: ${#_TEST_RESULTS[@]}"
     echo "Passed tests: ${_passed_count}"
     echo "Failed tests: ${_failed_count}${_RESET}"
+
+    if [[ ${_failed_count} -ne 0 ]]; then
+        return 1
+    fi
 }
 
 main() {
@@ -69,9 +73,14 @@ main() {
         echo "Calling with argument: ${1}"
     fi
 
+    if ! which valgrind &>/dev/null; then
+        echo "${_RED}Valgrind is not installed. Please install Valgrind to run memory leak checks.${_RESET}"
+        exit 1
+    fi
+
     echo "Compile mthc program with memory leak check..."
     if ! make debug; then
-        echo "Failed to compile mthc program with memory leak check."
+        echo "${_RED}Failed to compile mthc program with memory leak check.${_RESET}"
         exit 1
     fi
     echo ""
@@ -92,7 +101,9 @@ main() {
         run_test "${_file}"
     done
 
-    print_result
+    if ! print_result; then
+      exit 1
+    fi
 }
 
 main "$@"

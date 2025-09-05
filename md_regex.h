@@ -46,6 +46,5 @@ bool is_escaped_at(const char *str, PCRE2_SIZE pos);
 bool is_escaped(const char *str, char start_target, char end_target, PCRE2_SIZE start, PCRE2_SIZE end);
 
 char *escape_char_removal(char *str);
-static int cmp_md_link_start(const void *a, const void *b);
 
 #endif

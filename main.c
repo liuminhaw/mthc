@@ -230,6 +230,7 @@ void generate_html(MDBlock *block, const unsigned char *css_theme,
     printf("</script>\n");
   }
   printf("</body>\n");
+  printf("</html>\n");
 
   // free_peek_reader(reader);
   // fclose(css_file);

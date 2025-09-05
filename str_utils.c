@@ -241,7 +241,6 @@ void str_sub_tagpair(TagPair *pair, StrRecorder *recorder) {
 
 TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
   const uint8_t *traverse_ptr = start_ptr;
-  const size_t str_len = strlen(str);
 
   ucs4_t ch = 0;
   ucs4_t prev_ch = 0;
@@ -391,7 +390,6 @@ TagPair *find_emphasis_pair(char *str, uint8_t *start_ptr) {
 
 TagPair *find_code_tag_pair(char *str, uint8_t *start_ptr) {
   const uint8_t *traverse_ptr = start_ptr;
-  const size_t str_len = strlen(str);
 
   ucs4_t prev_ch = 0;
   ucs4_t ch = 0;
@@ -484,7 +482,6 @@ TagPair *(*pair_finder_fn_exec(char *str,
   //   printf("Found tag code_pair end: %s\n", code_pair->end);
   // }
 
-  char *result = NULL;
   if (emphasis_pair == NULL && code_pair == NULL) {
     return NULL;
   } else if (emphasis_pair == NULL) {

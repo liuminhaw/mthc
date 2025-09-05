@@ -11,6 +11,8 @@
 #include "file_reader.h"
 #include "md_regex.h"
 
+static int cmp_md_link_start(const void *a, const void *b);
+
 MDLinkRegex *parse_markdown_links(MDLinkReference *head, const char *str,
                                   size_t *result_count) {
   size_t general_link_count = 0;

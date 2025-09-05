@@ -1,14 +1,29 @@
-CC = gcc
 DEBUG ?= 0
 
 ifeq ($(DEBUG),1)
-	CFLAGS = -g
+	CFLAGS ?= -Og -g -Wall -Wextra
 else
-	CFLAGS = 
+	CFLAGS ?= -O2 -g -Wall -Wextra
 endif
 
+ifeq ($(origin CC), default)
+  ifneq ($(shell command -v gcc >/dev/null 2>&1 && echo yes),)
+    CC := gcc
+  else ifneq ($(shell command -v clang >/dev/null 2>&1 && echo yes),)
+    CC := clang
+  endif
+endif
+
+ifeq ($(shell command -v $(CC) >/dev/null 2>&1 && echo ok),)
+  $(error Compiler '$(CC)' not found. Try: make CC=gcc or CC=clang)
+endif
+
+PREFIX ?= /usr
+BINDIR ?= $(PREFIX)/bin
 BINARY = mthc
-OBJS = main.o md_parser.o file_reader.o debug.o str_utils.o md_regex.o style_css.o logger.o
+INSTALL ?= install
+
+OBJS := main.o md_parser.o file_reader.o debug.o str_utils.o md_regex.o style_css.o logger.o
 FLAG_FILE = .build_flags
 
 # SHELL := /bin/bash
@@ -17,7 +32,7 @@ FLAG_FILE = .build_flags
 # DEFAULT
 # ----------------------------
 
-all: mthc
+all: $(BINARY)
 
 # ----------------------------
 # HELPERS
@@ -39,15 +54,21 @@ check-flags:
 	fi; \
 	echo '$(CFLAGS)' > $(FLAG_FILE)
 
+# Avoid race condition in parallel build with -j
+$(OBJS): | check-flags
+
 # ---------------------------
 # BUILD
 # ---------------------------
 
 ## mthc: build the binary executable of mthc
-mthc: check-flags $(OBJS)
+$(BINARY): check-flags $(OBJS)
 	$(CC) $(CFLAGS) -o $(BINARY) $(OBJS) -lunistring -lpcre2-8
 
-style_css.o: style_css.c
+# mthc: check-flags $(OBJS)
+# 	$(CC) $(CFLAGS) -o mthc $(OBJS) -lunistring -lpcre2-8
+
+style_css.o: style_css.c style_css.h
 	$(CC) $(CFLAGS) -c style_css.c
 
 debug.o: debug.c debug.h
@@ -70,6 +91,16 @@ md_regex.o: md_regex.c md_regex.h
 
 main.o: main.c file_reader.h md_regex.h style_css.h debug.h logger.h
 	$(CC) $(CFLAGS) -c main.c
+
+## install: install built binary under given path
+.PHONY: install
+install: $(BINARY)
+	$(INSTALL) -D -m0755 $(BINARY) $(DESTDIR)$(BINDIR)/$(BINARY)
+
+## uninstall: remove installed binary under given path
+.PHONY: uninstall
+uninstall:
+	rm -f $(DESTDIR)$(BINDIR)/$(BINARY)
 
 ## debug: build binary with debugging information
 .PHONY: debug

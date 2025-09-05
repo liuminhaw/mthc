@@ -189,6 +189,9 @@ void escape_char_parsing(char *str) {
 
 MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
                         PeekReader *reader) {
+  (void)prnt_block; // Unused parameter
+  (void)curr_block; // Unused parameter
+
   char *line = peek_reader_current(reader);
   char *line_ptr = line;
   int advanced_count = 1;
@@ -223,6 +226,9 @@ MDBlock *heading_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *html_tag_parser(MDBlock *prnt_block, MDBlock *curr_block,
                          PeekReader *reader) {
+  (void)prnt_block; // Unused parameter
+  (void)curr_block; // Unused parameter
+
   MDBlock *new_block = NULL;
 
   char *line = peek_reader_current(reader);
@@ -257,6 +263,9 @@ MDBlock *html_tag_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
                           PeekReader *reader) {
+  (void)prnt_block; // Unused parameter
+  (void)curr_block; // Unused parameter
+
   MDBlock *new_block = NULL;
   while (true) {
     char *line = peek_reader_current(reader);
@@ -282,6 +291,9 @@ MDBlock *paragraph_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block,
                            PeekReader *reader) {
+  (void)prnt_block; // Unused parameter
+  (void)curr_block; // Unused parameter
+
   MDBlock *new_block = NULL;
   while (true) {
     char *line = peek_reader_current(reader);
@@ -313,6 +325,9 @@ MDBlock *blockquote_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
                              PeekReader *reader) {
+  (void)prnt_block; // Unused parameter
+  (void)curr_block; // Unused parameter
+
   MDBlock *new_block = NULL;
   while (true) {
     char *line = peek_reader_current(reader);
@@ -340,6 +355,9 @@ MDBlock *ordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
                                PeekReader *reader) {
+  (void)prnt_block; // Unused parameter
+  (void)curr_block; // Unused parameter
+
   MDBlock *new_block = NULL;
   while (true) {
     char *line = peek_reader_current(reader);
@@ -367,6 +385,8 @@ MDBlock *unordered_list_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
                           PeekReader *reader) {
+  (void)prev_block; // Unused parameter
+
   MDBlock *new_block = NULL;
   while (true) {
     char *line = peek_reader_current(reader);
@@ -419,6 +439,9 @@ MDBlock *list_item_parser(MDBlock *prnt_block, MDBlock *prev_block,
 
 MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block,
                           PeekReader *reader) {
+  (void)prnt_block; // Unused parameter
+  (void)curr_block; // Unused parameter
+
   LOGF("Enter codeblock parser\n");
   MDBlock *new_block = NULL;
   while (true) {
@@ -456,6 +479,8 @@ MDBlock *codeblock_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,
                                 PeekReader *reader) {
+  (void)prnt_block; // Unused parameter
+
   char *line = peek_reader_current(reader);
   if (is_empty_or_whitespace(line)) {
     return NULL;
@@ -482,6 +507,9 @@ MDBlock *horizontal_line_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *link_reference_parser(MDBlock *prnt_block, MDBlock *curr_block,
                                PeekReader *reader) {
+  (void)prnt_block; // Unused parameter
+  (void)curr_block; // Unused parameter
+
   char *line = peek_reader_current(reader);
   if (is_empty_or_whitespace(line)) {
     return NULL;
@@ -519,6 +547,9 @@ MDBlock *plain_parser(MDBlock *prnt_block, MDBlock *curr_block,
 
 MDBlock *section_break_parser(MDBlock *prnt_block, MDBlock *curr_block,
                               PeekReader *reader) {
+  (void)prnt_block; // Unused parameter
+  (void)curr_block; // Unused parameter
+
   char *line = peek_reader_current(reader);
   if (!is_empty_or_whitespace(line)) {
     LOGF("section: not empty or whitespace\n");
@@ -729,7 +760,6 @@ char *image_parser(char *str) {
     image->end += offset;
 
     char *sub_str = NULL;
-    char *str_template = NULL;
     size_t link_len = strlen(image->label) + strlen(image->src) + 19;
     if (image->title) {
       link_len += strlen(image->title) + 9;
@@ -904,12 +934,12 @@ int is_unordered_list_syntax(char *str) {
 // is_indented_line checks if the line is indented with `count` spaces.
 // Returns `count` if the line is indented with `count` spaces, otherwise
 // returns 0.
-int is_indented_line(int count, char *str) {
+int is_indented_line(size_t count, char *str) {
   if (str == NULL || strlen(str) < count) {
     return 0;
   }
 
-  for (int i = 0; i < count; i++) {
+  for (int i = 0; i < (int)count; i++) {
     if (str[i] != ' ') {
       return 0;
     }
