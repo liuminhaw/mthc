@@ -26,6 +26,12 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Versioning
+        shell: bash
+        run: |
+          echo "Versioning"
+          sed -i "s/{{VERSION}}/${{ github.ref_name }}/" main.c
+
       - name: Install build dependencies
         run: |
           apt-get update
@@ -70,6 +76,3 @@ jobs:
         with:
           name: ${{ steps.artifact_name.outputs.artifact_name }}
           path: deb-artifacts/*
-
-
-

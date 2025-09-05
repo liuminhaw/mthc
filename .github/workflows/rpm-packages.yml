@@ -25,6 +25,12 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Versioning
+        shell: bash
+        run: |
+          echo "Versioning"
+          sed -i "s/{{VERSION}}/${{ github.ref_name }}/" main.c
+
       - name: Install build dependencies
         run: |
           dnf install -y rpmdevtools gcc make dnf-plugins-core
@@ -42,7 +48,8 @@ jobs:
           name=$(rpmspec -q --srpm --qf '%{NAME}\n' rhel/rpm.spec)
           ver=$(rpmspec -q --srpm --qf '%{VERSION}\n' rhel/rpm.spec)
           mkdir -p .rpmbuild/{SOURCES,SPECS,RPMS,SRPMS}
-          git archive --format=tar --prefix=${name}-${ver}/ HEAD | gzip -9 > .rpmbuild/SOURCES/${name}-${ver}.tar.gz
+          git add -A
+          git archive --format=tar --prefix=${name}-${ver}/ "$(git write-tree)" | gzip -9 > .rpmbuild/SOURCES/${name}-${ver}.tar.gz
 
           # mkdir -p /tmp/${name}-${ver}
           # rsync -a --delete-excluded --exclude '.git' --exclude '.rpmbuild' --exclude '*.o' ./ /tmp/${name}-${ver}/
@@ -89,6 +96,3 @@ jobs:
         with:
           name: ${{ steps.artifact_name.outputs.artifact_name }}
           path: rpm-artifacts/*
-
-
-

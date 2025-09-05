@@ -28,11 +28,12 @@ jobs:
         run: ls -R dist
 
       - name: Create Release
+        if: ${{ !github.event.act }} # skip during local actions testing
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/deb-artifacts/*.deb
-            dist/rpm-artifacts/*.rpm
-            dist/arch-artifacts/*.pkg.tar.zst
-            dist/arch-artifacts/*.tar.gz
-            dist/arch-artifacts/PKGBUILD
+            dist/**/*.deb
+            dist/**/*.rpm
+            dist/**/*.pkg.tar.zst
+            dist/**/*.tar.gz
+            dist/**/PKGBUILD

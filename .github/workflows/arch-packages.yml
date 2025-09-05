@@ -17,6 +17,12 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Versioning
+        shell: bash
+        run: |
+          echo "Versioning"
+          sed -i "s/{{VERSION}}/${{ github.ref_name }}/" main.c
+
       - name: Install build dependencies
         run: |
           pacman -Sy --needed --noconfirm pacman-contrib tar sed findutils which
@@ -31,7 +37,9 @@ jobs:
         run: |
           name="$(grep -oP '^\s*pkgname\s*=\s*\K\S+' PKGBUILD)"
           ver="$(grep -oP '^\s*pkgver\s*=\s*\K\S+' PKGBUILD)"
-          su - builder -c "cd $GITHUB_WORKSPACE && git archive --format=tar.gz --prefix=\"${name}-${ver}/\" -o ${name}-${ver}.tar.gz HEAD"
+          su - builder -c "cd $GITHUB_WORKSPACE && git config --global --add safe.directory $GITHUB_WORKSPACE"
+          su - builder -c "cd $GITHUB_WORKSPACE && git add -A"
+          su - builder -c "cd $GITHUB_WORKSPACE && git archive --format=tar --prefix='${name}-${ver}/' \"\$(git write-tree)\" | gzip -n > '${name}-${ver}.tar.gz'"
           su - builder -c "cd $GITHUB_WORKSPACE && updpkgsums"
 
       - name: Build package

@@ -17,16 +17,19 @@ static bool debug_mode = false;
 static bool test_mode = false;
 static bool css_style = true;
 
+static const char *version = "{{VERSION}}";
+
 static void usage(const char *prog_name) {
   fprintf(stdout,
           "Usage: %s [options] <markdown_file>\n"
           "\n"
           "Options: \n"
-          "  --help             Show this help message and exit\n"
+          "  --help             Show this help message\n"
           "  --output=FILE      Specify output html file (default: stdout)\n"
           "  --no-style         Disable CSS styling in the output HTML\n"
           "  --debug            Enable debug logging\n"
-          "  --test             For testing purposes only\n",
+          "  --test             For testing purposes only\n"
+          "  --version          Show version information\n",
           prog_name);
 }
 
@@ -39,6 +42,10 @@ int main(int argc, char *argv[]) {
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0) {
       usage(argv[0]);
+      return 0;
+    }
+    if (strcmp(argv[i], "--version") == 0) {
+      fprintf(stdout, "Version: %s\n", version);
       return 0;
     }
   }
