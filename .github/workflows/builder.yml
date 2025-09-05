@@ -31,6 +31,7 @@ jobs:
         if: ${{ !github.event.act }} # skip during local actions testing
         uses: softprops/action-gh-release@v2
         with:
+          body_path: CHANGELOG.md
           files: |
             dist/**/*.deb
             dist/**/*.rpm
