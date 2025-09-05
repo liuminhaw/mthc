@@ -58,10 +58,11 @@ jobs:
           mkdir -p deb-artifacts
           mv ../mthc_*.deb deb-artifacts/ 
           pkg=$(ls deb-artifacts/*.deb | xargs basename)
+          echo "Package file: $pkg"
           name=$(dpkg-deb -f "deb-artifacts/${pkg}" Package)
           version=$(dpkg-deb -f "deb-artifacts/${pkg}" Version)
           dist=$(echo "${{ matrix.os }}" | cut -d: -f2)
-          mv deb-artifacts/${pkg} deb-artifacts/${name}_${version}.${dist}.deb
+          mv deb-artifacts/${pkg} deb-artifacts/${name}-${version}.${dist}_amd64.deb
 
       - name: Artifact name
         id: artifact_name

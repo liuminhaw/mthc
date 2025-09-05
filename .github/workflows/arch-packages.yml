@@ -45,6 +45,9 @@ jobs:
       - name: Build package
         run: |
           su - builder -c "cd $GITHUB_WORKSPACE && makepkg -s --noconfirm --cleanbuild --syncdeps"
+          ls -l *.pkg.tar.zst
+          ls -l *.tar.gz
+          ls -l PKGBUILD
 
       - name: Install node for artifact upload
         shell: bash
@@ -55,8 +58,9 @@ jobs:
         run: |
           name="$(grep -oP '^\s*pkgname\s*=\s*\K\S+' PKGBUILD)"
           ver="$(grep -oP '^\s*pkgver\s*=\s*\K\S+' PKGBUILD)"
+          rel="$(grep -oP '^\s*pkgrel\s*=\s*\K\S+' PKGBUILD)"
           mkdir -p arch-artifacts
-          mv ${name}-${ver}-*.pkg.tar.zst arch-artifacts/arch-${name}-${ver}.pkg.tar.zst
+          mv ${name}-${ver}-*.pkg.tar.zst arch-artifacts/arch-${name}-${ver}-${rel}-x86_64.pkg.tar.zst
           mv ${name}-${ver}.tar.gz arch-artifacts/arch-${name}-${ver}.tar.gz
           mv PKGBUILD arch-artifacts/
 

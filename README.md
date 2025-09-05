@@ -1,59 +1,41 @@
 # mthc
 
-A simple markdown to html converter written in C
+A Markdown-to-HTML converter written in C
 
-## Requirements
+This README focuses on development. For general usage and full documentation, visit the [mthc webpage](https://mthc.lmhaw.dev).
 
-`libunistring` and `libpcre2-8` need to be installed on the system to run the program.
+## Development
 
-## Build
+### Build
+Build with `make` is the recommended way to compile `mthc`.
 
-### Install dependencies
-
-Dependencies required for building:
+Required build dependencies:
 - `libunistring-dev`
 - `libpcre2-dev`
 
-### `make`
+#### Dependencies
+Required tools for specific `make` targets: 
+- `column` (For `make help` formatting)
+- `xxd` (For css embedding `make styles`)
+- `valgrind` (For memory leak tests `make mem-check`)
 
-- Build executable: `make mthc`
-- Build with debug information: `make debug`
+#### Common targets
+- Build executable: `make mthc` or just `make`
 - Clean build files: `make clean`
 - Run tests:
   - Run conversion tests: `make check`
   - Run memory leak tests: `make mem-check`
+- Generate styles: `make styles`
+- For more targets, run `make help`
 
-#### `make` dependencies
-
-Required tools for specific `make` targets: 
-
-- `column` (For `make help` formatting)
-- `xxd` (For css embedding `make styles`)
-
-## Packaging
+## Releasing package
 
 ### Debian
-Debian `changelog` file common workflows (with `dch`)
+Update version / release with changelog in `debian/changelog` (can use `dch` command for this)
 
-- Install `dch`
-    ```
-    sudo aptt install devscripts
-    ```
-- Start a new release entry from your working tree:
-    ```
-    dch -v 1.0.1-1 "Fix install path; add manpage."
-    ```
-- Bump just the Debian revision (packaging tweak only):
-    ```
-    # turns 1.0.0-1 into 1.0.0-2
-    dch -i "Adjust Build-Depends; fix hardening flags."
-    ```
-- Mark ready for release (sets date and finalizes):
-    ```
-    dch -r
-    ```
+### RPM
+Update version / release with changelog in `rhel/rpm.spec`
 
+### Arch Linux
+Update version / release in `PKGBUILD`
 
-## Reference
-
-- [Markdown guide - Basic Syntax](https://www.markdownguide.org/basic-syntax/)

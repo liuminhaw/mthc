@@ -59,3 +59,6 @@ mthc
 
 # Build records
 .build_flags
+
+# Generated website
+_site/
