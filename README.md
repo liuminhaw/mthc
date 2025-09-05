@@ -39,3 +39,12 @@ Update version / release with changelog in `rhel/rpm.spec`
 ### Arch Linux
 Update version / release in `PKGBUILD`
 
+## GitHub Action Testing
+Use [act](https://github.com/nektos/act) to run GitHub Actions locally for testing. Requires Docker.
+
+Some commands:
+- List available jobs: `act -l`
+- Run all jobs: `act`
+- Run a specific job: `act -j <job_name>`
+- Run with specific event: `act -e <event_file>.json`. There is a default event file at `act/event.json`
+- Run with artifacts enabled: `act --artifact-server-path /path/to/artifacts`
