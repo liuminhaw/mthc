@@ -48,6 +48,7 @@ jobs:
           name=$(rpmspec -q --srpm --qf '%{NAME}\n' rhel/rpm.spec)
           ver=$(rpmspec -q --srpm --qf '%{VERSION}\n' rhel/rpm.spec)
           mkdir -p .rpmbuild/{SOURCES,SPECS,RPMS,SRPMS}
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git add -A
           git archive --format=tar --prefix=${name}-${ver}/ "$(git write-tree)" | gzip -9 > .rpmbuild/SOURCES/${name}-${ver}.tar.gz
 
