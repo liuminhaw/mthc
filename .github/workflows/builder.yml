@@ -20,7 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [rpm-packages, deb-packages, arch-packages]
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
           path: dist
 
