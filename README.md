@@ -28,6 +28,15 @@ Required tools for specific `make` targets:
 - Generate styles: `make styles`
 - For more targets, run `make help`
 
+## Updating css styles
+The default CSS styles are defined in `css/catppuccin-theme.css`. This file is **not used directly** at runtime. Instead, it is converted into a C header file (`style_css.h`) and a source file (`style_css.c`), which are then included in the build. 
+
+Therefore, after editing the CSS file (and before pushing changes), you must regenerate the C files by running the following steps:
+
+```bash
+make styles
+```
+
 ## Releasing package
 
 ### Debian

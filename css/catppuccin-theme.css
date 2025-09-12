@@ -200,6 +200,12 @@ ol li::marker {
   color: var(--ctp-pink); /* number color */
 }
 
+img {
+    max-width: 100%;
+    height: auto;
+    margin: 1.2rem 0;
+}
+
 .container {
   max-width: 960px;
   margin: 0 auto;
