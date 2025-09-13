@@ -1,3 +1,10 @@
+mthc (1.0.1-1) unstable; urgency=medium
+
+  [ lmhaw ]
+  * Fix generated HTML default image styling
+
+ -- Min-Haw Liu <lmhaw@hey.com>  Sat, 13 Sep 2025 02:19:03 +0000
+
 mthc (1.0.0-1) unstable; urgency=medium
 
   [ lmhaw ]

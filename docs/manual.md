@@ -2,7 +2,7 @@
 
 **mthc** is a Markdown-to-HTML converter written in C. 
 
-> Version 1.0.0
+> Version 1.0.1
 
 ---
 
@@ -30,9 +30,9 @@ To run `mthc`, your system must have `libunistring` and `libpcre2-8` installed.
 ## Installation
 Building with `make` is the recommended way to install `mthc`.
 
-Download the source from the **v1.0.0** release or clone the tag directly:
+Download the source from the **v1.0.1** release or clone the tag directly:
 
-    git clone --depth 1 --branch v1.0.0 https://github.com/liuminhaw/mthc.git
+    git clone --depth 1 --branch v1.0.1 https://github.com/liuminhaw/mthc.git
 
 ### Dependencies
 To build with `make`, you’ll need:

@@ -1,5 +1,5 @@
 Name:           mthc
-Version:        1.0.0
+Version:        1.0.1
 Release:        1%{?dist}
 Summary:        Markdown to HTML converter written in C
 License:        MIT
@@ -39,6 +39,8 @@ make mem-check
 %{_bindir}/%{name}
 
 %changelog
+* Sat Sep 13 2025 Min-Haw Liu <lmhaw@hey.com> - 1.0.1-1
+- Fix generated HTML default image styling
 * Thu Sep 05 2025 Min-Haw Liu <lmhaw@hey.com> - 1.0.0-1
 - Initial package
 
