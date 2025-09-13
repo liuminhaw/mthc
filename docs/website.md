@@ -7,7 +7,7 @@
 <div>
     <a href="https://github.com/liuminhaw/mthc/tree/v1.0.1">
         <button style="display: flex;align-items: center;gap: 10px;background-color: #5f5fff;color: #ffffff;font-size: 18px;padding: 0.6rem 1.2rem;border-radius: 100px; border: none; cursor: pointer;"><img
-  src="images/github-mark-white.svg" height="24px" width="24px"/> View source</button>
+  src="images/github-mark-white.svg" height="24px" width="24px" style="margin: 0.4rem 0"/> View source</button>
     </a>
 </div>
 
