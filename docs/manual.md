@@ -2,14 +2,17 @@
 
 **mthc** is a Markdown-to-HTML converter written in C. 
 
-> Version 1.0.1
+> Version 1.0.2
 
 ---
 
-- [Requirements](#requirements)
+- [Overview](#overview)
 - [Installation](#installation)
-    - [Dependencies](#dependencies)
-    - [Build](#build)
+    - [Debian based Linux](#debian-based-linux)
+    - [RedHat based Linux](#redhat-based-linux)
+    - [Arch Linux](#arch-linux)
+    - [Building from source](#building-from-source)
+        - [Runtime Requirements](#runtime-requirements)
 - [Usage](#usage)
 - [Supported Syntax](#supported-syntax)
     - [Basic Syntax](#basic-syntax)
@@ -18,32 +21,46 @@
 
 ---
 
+## Overview
 `mthc` currently supports the Markdown *Basic Syntax* as defined in the [Markdown Guide](https://www.markdownguide.org/basic-syntax/), plus one *Extended Syntax* feature: *automatic heading IDs*. Additional extensions are planned for future releases.
 
 It ships with a built-in stylesheet based on the [Catppuccin color palette](https://catppuccin.com/palette/) and supports light/dark mode. Code blocks are highlighted with [highlight.js](https://highlightjs.org/). The CSS/JS required for styling and highlighting are embedded directly in the generated HTML. If you prefer a bare document, you can disable styling to produce plain HTML.
 
 > **Note:** Custom stylesheets are not yet supported. As a workaround, disable the built-in styles and add your own CSS manually.
 
-## Requirements
-To run `mthc`, your system must have `libunistring` and `libpcre2-8` installed.
 
 ## Installation
-Building with `make` is the recommended way to install `mthc`.
+Prebuilt packages are available for Debian/Ubuntu, RHEL/CentOS/Rocky/Alma, and Arch Linux (x86_64/amd64). Download them from the [GitHub Releases page](https://github.com/liuminhaw/mthc/releases).
 
-Download the source from the **v1.0.1** release or clone the tag directly:
+You can also build from source with `make` (see below).
 
-    git clone --depth 1 --branch v1.0.1 https://github.com/liuminhaw/mthc.git
+### Debian based Linux
+Download the `.deb` that matches your OS release, then install:
 
-### Dependencies
-To build with `make`, you’ll need:
-- `gcc` (C compiler)
-- `libunistring-dev`
-- `libpcre2-dev`
+    sudo apt install ./mthc-{version}-{release}.{distro}_{arch}.deb
 
-### Build
-Build with a single `make` command:
+### RedHat based Linux
+Download the `.rpm` that matches your OS release, then install:
 
-    make
+    sudo dnf install ./mthc-{version}-{release}.{distro}.{arch}.rpm
+
+### Arch Linux
+Download the `.pkg.tar.zst` package, then install:
+
+    sudo pacman -U ./arch-mthc-{version}-{release}-{arch}.pkg.tar.zst
+
+### Building from source
+1. Get the source for vX.Y.Z from the [release page](https://github.com/liuminhaw/mthc/releases) or clone the tag:
+        git clone --depth 1 --branch vX.Y.Z https://github.com/liuminhaw/mthc.git
+1. Install the required build dependencies:
+    - `gcc` (C compiler)
+    - `libunistring-dev`
+    - `libpcre2-dev`
+1. Build the executable:
+        make
+
+#### Runtime Requirements
+Your system must have `libunistring` and `libpcre2-8` installed for `mthc` to run. If install from a package, these dependencies will be handled automatically.
 
 ## Usage
 Using `mthc` is simple. Just provide a Markdown file and mthc writes HTML to standard output. Use `--output` to write to a file.
@@ -51,11 +68,12 @@ Using `mthc` is simple. Just provide a Markdown file and mthc writes HTML to sta
     mthc [options] &ltmarkdown_file&gt
      
     Options:
-      --help             Show this help message and exit
+      --help             Show this help message
       --output=FILE      Specify output html file (default: stdout)
       --no-style         Disable CSS styling in the output HTML
       --debug            Enable debug logging
       --test             For testing purposes only
+      --version          Show version information
 
 The `--debug` flag writes verbose diagnostic output to standard error and is primarily intended for development.
 
@@ -80,6 +98,5 @@ See the Basic Syntax reference [here](https://www.markdownguide.org/basic-syntax
     > `mthc` automatically generates `id` attributes for headings based on their text. Custom IDs are not supported yet.
 
 ## Feedback 
-If you have questions about using mthc, feel free to email <liuminhaw@gmail.com>.
+If you have questions about using mthc, feel free to email <lmhaw@hey.com>.
 To report bugs or request features, please open an issue in the [GitHub repository](https://github.com/liuminhaw/mthc). Pull requests are welcome.
-

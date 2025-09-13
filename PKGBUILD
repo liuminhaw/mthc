@@ -1,6 +1,6 @@
 # Maintainer: Min-Haw Liu <lmhaw@hey.com>
 pkgname=mthc
-pkgver=1.0.1
+pkgver=1.0.2
 pkgrel=1
 pkgdesc="Markdown → HTML converter written in C"
 arch=('x86_64')
