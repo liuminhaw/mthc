@@ -193,7 +193,7 @@ void generate_html(MDBlock *block, const unsigned char *css_theme,
     printf("</style>\n");
     printf("<script "
            "src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/"
-           "highlight.min.js\"></script>");
+           "highlight.min.js\"></script>\n");
   }
   printf("</head>\n");
   printf("<body>\n");
@@ -202,7 +202,7 @@ void generate_html(MDBlock *block, const unsigned char *css_theme,
     printf(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 "
         "0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" "
-        "class=\"toggle-theme\">\n");
+        "class=\"toggle-theme light-theme\">\n");
     printf(
         "<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 "
         "3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 "
@@ -212,7 +212,7 @@ void generate_html(MDBlock *block, const unsigned char *css_theme,
     printf(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 "
         "0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" "
-        "class=\"toggle-theme hidden\">\n");
+        "class=\"toggle-theme dark-theme\">\n");
     printf(
         "<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M21.752 "
         "15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 "
@@ -226,10 +226,36 @@ void generate_html(MDBlock *block, const unsigned char *css_theme,
   printf("</div>\n");
   if (css_style) {
     printf("<script>hljs.highlightAll();</script>\n");
-    printf("<script>");
+    printf("<script>\n");
+    printf("(function () {\n");
+    printf("const saved = localStorage.getItem('theme');\n");
+    printf("const prefersDark = window.matchMedia('(prefers-color-scheme: "
+           "light)').matches;\n");
+    printf("const theme = saved || (prefersDark ? 'light' : 'dark');\n");
+    printf("document.body.classList.toggle('light', theme === 'light');\n");
+    printf("document.documentElement.dataset.theme = theme;\n");
+    printf("document.documentElement.style.colorScheme = theme;\n");
+    printf("const lightThemeBtn = document.querySelector('.light-theme');\n");
+    printf("const darkThemeBtn = document.querySelector('.dark-theme');\n");
+    printf("if (theme === 'light') {\n");
+    printf("lightThemeBtn.classList.add('hidden');\n");
+    printf("darkThemeBtn.classList.remove('hidden');\n");
+    printf("} else {\n");
+    printf("darkThemeBtn.classList.add('hidden');\n");
+    printf("lightThemeBtn.classList.remove('hidden');\n");
+    printf("}\n");
+    printf("})();\n");
+    printf("</script>\n");
+    printf("<script>\n");
     printf("const themes = document.querySelectorAll('.toggle-theme');\n");
     printf("themes.forEach(theme => {\n");
     printf("theme.addEventListener('click', () => {\n");
+    printf("const current = document.body.classList.contains('light') ? "
+           "'light' : 'dark';\n");
+    printf("const next = current === 'light' ? 'dark' : 'light';\n");
+    printf("localStorage.setItem('theme', next);\n");
+    printf("document.documentElement.dataset.theme = theme;\n");
+    printf("document.documentElement.style.colorScheme = theme;\n");
     printf("document.body.classList.toggle('light');\n");
     printf("themes.forEach(t => t.classList.toggle('hidden'));\n");
     printf("});\n");

@@ -126,7 +126,8 @@ void inline_parsing(MDLinkReference *list, MDBlock *block) {
     return;
   }
 
-  if (block->block == CODEBLOCK || block->block == SECTION_BREAK) {
+  if (block->block == CODEBLOCK || block->block == SECTION_BREAK ||
+      block->block == HTML_TAG) {
     return;
   }
 
@@ -246,7 +247,7 @@ MDBlock *html_tag_parser(MDBlock *prnt_block, MDBlock *curr_block,
       mdblock_content_update(new_block, line, "%s%s\n");
     } else {
       LOGF("new html tag block: %s\n", line);
-      new_block = new_mdblock(line, "", PLAIN, NONE, 1);
+      new_block = new_mdblock(line, "", HTML_TAG, NONE, 1);
     }
 
     peek_reader_advance(reader);
@@ -1178,8 +1179,6 @@ char *blocktag_to_string(BlockTag block) {
     return "H6";
   case PARAGRAPH:
     return "PARAGRAPH";
-  case SECTION_BREAK:
-    return "SECTION BREAK";
   case BLOCKQUOTE:
     return "BLOCKQUOTE";
   case ORDERED_LIST:
@@ -1188,6 +1187,16 @@ char *blocktag_to_string(BlockTag block) {
     return "UNORDERED LIST";
   case LIST_ITEM:
     return "LIST ITEM";
+  case CODEBLOCK:
+    return "CODEBLOCK";
+  case HORIZONTAL_LINE:
+    return "HORIZONTAL LINE";
+  case SECTION_BREAK:
+    return "SECTION BREAK";
+  case LINK_REFERENCE:
+    return "LINK REFERENCE";
+  case HTML_TAG:
+    return "HTML TAG";
   case PLAIN:
     return "PLAIN";
   default:

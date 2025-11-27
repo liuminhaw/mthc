@@ -32,6 +32,7 @@ typedef enum {
   HORIZONTAL_LINE,
   SECTION_BREAK,
   LINK_REFERENCE,
+  HTML_TAG,
   PLAIN // plain text that don't use any tag 
 } BlockTag;
 
