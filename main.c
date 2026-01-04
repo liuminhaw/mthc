@@ -11,7 +11,10 @@
 void generate_html(MDBlock *block, const unsigned char *css_theme,
                    unsigned int css_theme_len);
 void print_html(MDBlock *block);
+
 int write_css(FILE *fp, const unsigned char *p, size_t n);
+void write_highlight_js(FILE *fp, int action);
+void write_theme_toggler(FILE *fp, int action);
 
 static bool debug_mode = false;
 static bool test_mode = false;
@@ -163,13 +166,6 @@ void generate_html(MDBlock *block, const unsigned char *css_theme,
     return;
   }
 
-  // FILE *css_file = fopen(css_filepath, "r");
-  // PeekReader *reader = new_peek_reader_from_file(css_file,
-  // DEFAULT_PEEK_COUNT); if (!reader) {
-  //   fprintf(stderr, "Failed to create peek reader for CSS\n");
-  //   return;
-  // }
-
   printf("<!DOCTYPE html>\n");
   printf("<html>\n");
   printf("<head>\n");
@@ -179,94 +175,24 @@ void generate_html(MDBlock *block, const unsigned char *css_theme,
          "initial-scale=1.0\">\n");
   if (css_style) {
     printf("<style>\n");
-    // write_css(fileno(stdout), css_theme, (size_t)css_theme_len);
     write_css(stdout, css_theme, (size_t)css_theme_len);
-    // do {
-    //   char *line = peek_reader_current(reader);
-    //   if (line != NULL) {
-    //     printf("%s\n", line);
-    //   }
-    //   if (!peek_reader_advance(reader)) {
-    //     break; // Exit loop if no more lines to read
-    //   }
-    // } while (reader->count > 0);
     printf("</style>\n");
-    printf("<script "
-           "src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/"
-           "highlight.min.js\"></script>\n");
+    write_highlight_js(stdout, 0);
   }
   printf("</head>\n");
   printf("<body>\n");
   if (css_style) {
-    printf("<nav>\n");
-    printf(
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 "
-        "0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" "
-        "class=\"toggle-theme light-theme\">\n");
-    printf(
-        "<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 "
-        "3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 "
-        "18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 "
-        "5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z\" />\n");
-    printf("</svg>\n");
-    printf(
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 "
-        "0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" "
-        "class=\"toggle-theme dark-theme\">\n");
-    printf(
-        "<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M21.752 "
-        "15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 "
-        "0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 "
-        "21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z\" />\n");
-    printf("</svg>\n");
-    printf("</nav>\n");
+    write_theme_toggler(stdout, 0);
   }
   printf("<div class=\"container\">\n");
   print_html(block);
   printf("</div>\n");
   if (css_style) {
-    printf("<script>hljs.highlightAll();</script>\n");
-    printf("<script>\n");
-    printf("(function () {\n");
-    printf("const saved = localStorage.getItem('theme');\n");
-    printf("const prefersDark = window.matchMedia('(prefers-color-scheme: "
-           "light)').matches;\n");
-    printf("const theme = saved || (prefersDark ? 'light' : 'dark');\n");
-    printf("document.body.classList.toggle('light', theme === 'light');\n");
-    printf("document.documentElement.dataset.theme = theme;\n");
-    printf("document.documentElement.style.colorScheme = theme;\n");
-    printf("const lightThemeBtn = document.querySelector('.light-theme');\n");
-    printf("const darkThemeBtn = document.querySelector('.dark-theme');\n");
-    printf("if (theme === 'light') {\n");
-    printf("lightThemeBtn.classList.add('hidden');\n");
-    printf("darkThemeBtn.classList.remove('hidden');\n");
-    printf("} else {\n");
-    printf("darkThemeBtn.classList.add('hidden');\n");
-    printf("lightThemeBtn.classList.remove('hidden');\n");
-    printf("}\n");
-    printf("})();\n");
-    printf("</script>\n");
-    printf("<script>\n");
-    printf("const themes = document.querySelectorAll('.toggle-theme');\n");
-    printf("themes.forEach(theme => {\n");
-    printf("theme.addEventListener('click', () => {\n");
-    printf("const current = document.body.classList.contains('light') ? "
-           "'light' : 'dark';\n");
-    printf("const next = current === 'light' ? 'dark' : 'light';\n");
-    printf("localStorage.setItem('theme', next);\n");
-    printf("document.documentElement.dataset.theme = theme;\n");
-    printf("document.documentElement.style.colorScheme = theme;\n");
-    printf("document.body.classList.toggle('light');\n");
-    printf("themes.forEach(t => t.classList.toggle('hidden'));\n");
-    printf("});\n");
-    printf("});\n");
-    printf("</script>\n");
+    write_highlight_js(stdout, 1);
+    write_theme_toggler(stdout, 1);
   }
   printf("</body>\n");
   printf("</html>\n");
-
-  // free_peek_reader(reader);
-  // fclose(css_file);
 }
 
 void print_html(MDBlock *block) {
@@ -336,4 +262,93 @@ int write_css(FILE *fp, const unsigned char *p, size_t n) {
     remaining -= written;
   }
   return 0;
+}
+
+// write necessary html for highlight.js to run code highlighting
+// action: 0 = write src script tag, 1 = write execution script
+void write_highlight_js(FILE *fp, int action) {
+  if (action == 0) {
+    fprintf(fp, "<script "
+                "src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/"
+                "11.11.1/highlight.min.js\"></script>\n");
+  } else if (action == 1) {
+    fprintf(fp, "<script>hljs.highlightAll();</script>\n");
+  }
+}
+
+// write html for theme toggler
+// action: 0 = write toggler UI, 1 = write toggler function script
+void write_theme_toggler(FILE *fp, int action) {
+  switch (action) {
+  case 0:
+    fprintf(fp, "<nav>\n");
+    fprintf(
+        fp,
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 "
+        "0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" "
+        "class=\"toggle-theme light-theme\">\n");
+    fprintf(
+        fp,
+        "<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 "
+        "3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 "
+        "18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 "
+        "5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z\" />\n");
+    fprintf(fp, "</svg>\n");
+    fprintf(
+        fp,
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 "
+        "0 24 24\" stroke-width=\"1.5\" stroke=\"currentColor\" "
+        "class=\"toggle-theme dark-theme\">\n");
+    fprintf(
+        fp,
+        "<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M21.752 "
+        "15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 "
+        "0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 "
+        "21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z\" />\n");
+    fprintf(fp, "</svg>\n");
+    fprintf(fp, "</nav>\n");
+    break;
+  case 1:
+    fprintf(fp, "<script>\n");
+    fprintf(fp, "(function () {\n");
+    fprintf(fp, "const saved = localStorage.getItem('theme');\n");
+    fprintf(fp, "const prefersDark = window.matchMedia('(prefers-color-scheme: "
+                "light)').matches;\n");
+    fprintf(fp, "const theme = saved || (prefersDark ? 'light' : 'dark');\n");
+    fprintf(fp,
+            "document.body.classList.toggle('light', theme === 'light');\n");
+    fprintf(fp, "document.documentElement.dataset.theme = theme;\n");
+    fprintf(fp, "document.documentElement.style.colorScheme = theme;\n");
+    fprintf(fp,
+            "const lightThemeBtn = document.querySelector('.light-theme');\n");
+    fprintf(fp,
+            "const darkThemeBtn = document.querySelector('.dark-theme');\n");
+    fprintf(fp, "if (theme === 'light') {\n");
+    fprintf(fp, "lightThemeBtn.classList.add('hidden');\n");
+    fprintf(fp, "darkThemeBtn.classList.remove('hidden');\n");
+    fprintf(fp, "} else {\n");
+    fprintf(fp, "darkThemeBtn.classList.add('hidden');\n");
+    fprintf(fp, "lightThemeBtn.classList.remove('hidden');\n");
+    fprintf(fp, "}\n");
+    fprintf(fp, "})();\n");
+    fprintf(fp, "</script>\n");
+    fprintf(fp, "<script>\n");
+    fprintf(fp, "const themes = document.querySelectorAll('.toggle-theme');\n");
+    fprintf(fp, "themes.forEach(theme => {\n");
+    fprintf(fp, "theme.addEventListener('click', () => {\n");
+    fprintf(fp, "const current = document.body.classList.contains('light') ? "
+                "'light' : 'dark';\n");
+    fprintf(fp, "const next = current === 'light' ? 'dark' : 'light';\n");
+    fprintf(fp, "localStorage.setItem('theme', next);\n");
+    fprintf(fp, "document.documentElement.dataset.theme = theme;\n");
+    fprintf(fp, "document.documentElement.style.colorScheme = theme;\n");
+    fprintf(fp, "document.body.classList.toggle('light');\n");
+    fprintf(fp, "themes.forEach(t => t.classList.toggle('hidden'));\n");
+    fprintf(fp, "});\n");
+    fprintf(fp, "});\n");
+    fprintf(fp, "</script>\n");
+    break;
+  default:
+    perror("Invalid action for write_theme_toggler");
+  }
 }
