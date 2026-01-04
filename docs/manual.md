@@ -2,7 +2,7 @@
 
 **mthc** is a Markdown-to-HTML converter written in C. 
 
-> Version 1.0.2
+> Version 1.0.3
 
 ---
 
@@ -98,5 +98,5 @@ See the Basic Syntax reference [here](https://www.markdownguide.org/basic-syntax
     > `mthc` automatically generates `id` attributes for headings based on their text. Custom IDs are not supported yet.
 
 ## Feedback 
-If you have questions about using mthc, feel free to email <lmhaw@hey.com>.
+If you have questions about using mthc, feel free to email <liuminhaw@gmail.com>.
 To report bugs or request features, please open an issue in the [GitHub repository](https://github.com/liuminhaw/mthc). Pull requests are welcome.

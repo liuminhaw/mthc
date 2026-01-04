@@ -1,21 +1,29 @@
+mthc (1.0.3-1) unstable; urgency=medium
+
+  [ lmhaw ]
+  * Remember theme settings within the site using localStorage
+  * Prevent parsing content in html tag block
+
+ -- Min-Haw Liu <liuminhaw@gmail.com> Sun, 04 Jan 2026 07:52:56 +0000
+
 mthc (1.0.2-1) unstable; urgency=medium
 
   [ lmhaw ]
   * Tweak default image styling by removing bottom margin
 
- -- Min-Haw Liu <lmhaw@hey.com>  Sat, 13 Sep 2025 09:00:33 +0000
+ -- Min-Haw Liu <liuminhaw@gmail.com>  Sat, 13 Sep 2025 09:00:33 +0000
 
 mthc (1.0.1-1) unstable; urgency=medium
 
   [ lmhaw ]
   * Fix generated HTML default image styling
 
- -- Min-Haw Liu <lmhaw@hey.com>  Sat, 13 Sep 2025 02:19:03 +0000
+ -- Min-Haw Liu <liuminhaw@gmail.com>  Sat, 13 Sep 2025 02:19:03 +0000
 
 mthc (1.0.0-1) unstable; urgency=medium
 
   [ lmhaw ]
   * Initial release
 
- -- Min-Haw Liu <lmhaw@hey.com>  Fri, 05 Sep 2025 11:14:29 +0000
+ -- Min-Haw Liu <liuminhaw@gmail.com>  Fri, 05 Sep 2025 11:14:29 +0000
 

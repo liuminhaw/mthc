@@ -1,5 +1,5 @@
 Name:           mthc
-Version:        1.0.2
+Version:        1.0.3
 Release:        1%{?dist}
 Summary:        Markdown to HTML converter written in C
 License:        MIT
@@ -39,10 +39,13 @@ make mem-check
 %{_bindir}/%{name}
 
 %changelog
-* Sat Sep 13 2025 Min-Haw Liu <lmhaw@hey.com> - 1.0.2-1
+* Sun Jan 04 2026 Min-Haw Liu <liuminhaw@gmail.com> - 1.0.3-1
+- Remember theme settings within the site using localStorage
+- Prevent parsing content in html tag block
+* Sat Sep 13 2025 Min-Haw Liu <liuminhaw@gmail.com> - 1.0.2-1
 - Tweak default image styling by removing bottom margin
-* Sat Sep 13 2025 Min-Haw Liu <lmhaw@hey.com> - 1.0.1-1
+* Sat Sep 13 2025 Min-Haw Liu <liuminhaw@gmail.com> - 1.0.1-1
 - Fix generated HTML default image styling
-* Thu Sep 05 2025 Min-Haw Liu <lmhaw@hey.com> - 1.0.0-1
+* Thu Sep 05 2025 Min-Haw Liu <liuminhaw@gmail.com> - 1.0.0-1
 - Initial package
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.3] - 2026-01-04
+
+### Added
+
+- Add css theme memorization support using localStorage ([`3740c43`](https://github.com/liuminhaw/mthc/commit/3740c43)) (Min-Haw, Liu)
+
+### Fixed
+
+- Prevent parsing within HTML tag blocks ([`3740c43`](https://github.com/liuminhaw/mthc/commit/3740c43)) (Min-Haw, Liu)
+
 ## [1.0.2] - 2025-09-13
 
 ### Fixed
@@ -15,6 +25,8 @@
 ## [1.0.0] - 2025-09-06
 
 _:seedling: Initial release._
+
+[1.0.3]: https://github.com/liuminhaw/mthc/releases/tag/v1.0.3
 
 [1.0.2]: https://github.com/liuminhaw/mthc/releases/tag/v1.0.2
 

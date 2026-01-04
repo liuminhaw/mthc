@@ -1,7 +1,7 @@
 Source: mthc
 Section: utils
 Priority: optional
-Maintainer: Min-Haw Liu <lmhaw@hey.com>
+Maintainer: Min-Haw Liu <liuminhaw@gmail.com>
 Build-Depends: debhelper-compat (= 13), gcc, make, pkg-config, libunistring-dev, libpcre2-dev, valgrind
 Standards-Version: 4.7.0
 Homepage: https://mthc.lmhaw.dev

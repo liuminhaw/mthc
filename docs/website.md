@@ -2,11 +2,11 @@
 
 **mthc** is a Markdown-to-HTML converter written in C. 
 
-> Version 1.0.2
+> Version 1.0.3
 
 <div>
-    <a href="https://github.com/liuminhaw/mthc/tree/v1.0.2">
-        <button style="display: flex;align-items: center;gap: 10px;background-color: #5f5fff;color: #ffffff;font-size: 18px;padding: 0.6rem 1.2rem;border-radius: 100px; border: none; cursor: pointer;"><img
+    <a href="https://github.com/liuminhaw/mthc/tree/v1.0.3">
+        <button style="display: flex;align-items: center;gap: 10px;background-color: #5f5fff;color: #ffffff;font-size: 18px;padding: 0.4rem 1.0rem;border-radius: 100px; border: none; cursor: pointer;"><img
   src="images/github-mark-white.svg" height="24px" width="24px" style="margin: 0.4rem 0"/> View source</button>
     </a>
 </div>
@@ -105,7 +105,7 @@ See the Basic Syntax reference [here](https://www.markdownguide.org/basic-syntax
     > `mthc` automatically generates `id` attributes for headings based on their text. Custom IDs are not supported yet.
 
 ## Feedback 
-If you have questions about using mthc, feel free to email <lmhaw@hey.com>.
+If you have questions about using mthc, feel free to email <liuminhaw@gmail.com>.
 To report bugs or request features, please open an issue in the [GitHub repository](https://github.com/liuminhaw/mthc). Pull requests are welcome.
 
 <footer>

@@ -1,10 +1,10 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: mthc
-Upstream-Contact: Min-Haw Liu <lmhaw@hey.com>
+Upstream-Contact: Min-Haw Liu <liuminhaw@gmail.com>
 Source: https://github.com/liuminhaw/mthc
 
 Files: *
-Copyright: 2024-2025 Min-Haw Liu
+Copyright: 2024-2026 Min-Haw Liu
 License: Expat
  On Debian systems, the complete text of the Expat license can be
  found in “/usr/share/common-licenses/Expat”.
