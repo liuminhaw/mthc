@@ -31,12 +31,13 @@ jobs:
       - name: List artifacts
         run: ls -R dist
 
-      - name: Create Release
+      - name: Release
         if: ${{ !github.event.act }} # skip during local actions testing
-        uses: softprops/action-gh-release@v2
+        uses: docker://antonyurchenko/git-release:v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          body_path: CHANGELOG.md
-          files: |
+          args: |
             dist/**/*.deb
             dist/**/*.rpm
             dist/**/*.pkg.tar.zst
